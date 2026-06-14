@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Daily Tracker 2.0</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#ffffff;--bg2:#f7f6f3;--bg3:#f0efe9;
+  --text:#1a1a1a;--text2:#6b6b6b;--text3:#b0b0a8;
+  --border:rgba(0,0,0,0.09);--border2:rgba(0,0,0,0.18);
+  --green:#27500A;--green-mid:#639922;--green-bg:#EAF3DE;--green-border:#C0DD97;
+  --red:#791F1F;--red-mid:#E24B4A;--red-bg:#FCEBEB;--red-border:#F7C1C1;
+  --blue:#0C447C;--blue-mid:#378ADD;--blue-bg:#E6F1FB;--blue-border:#B5D4F4;
+  --amber:#633806;--amber-mid:#BA7517;--amber-bg:#FAEEDA;--amber-border:#FAC775;
+  --purple:#3C3489;--purple-mid:#7F77DD;--purple-bg:#EEEDFE;--purple-border:#AFA9EC;
+  --teal:#085041;--teal-mid:#1D9E75;--teal-bg:#E1F5EE;--teal-border:#9FE1CB;
+  --radius:10px;--radius-lg:16px;--radius-xl:20px;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#1c1c1e;--bg2:#2c2c2e;--bg3:#242424;
+    --text:#f2f2f7;--text2:#aeaeb2;--text3:#636366;
+    --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.15);
+    --green:#C0DD97;--green-mid:#639922;--green-bg:#1a3a06;--green-border:#3B6D11;
+    --red:#F09595;--red-mid:#E24B4A;--red-bg:#3a1414;--red-border:#7a2a2a;
+    --blue:#85B7EB;--blue-mid:#378ADD;--blue-bg:#0a2a45;--blue-border:#1a5090;
+    --amber:#FAC775;--amber-mid:#BA7517;--amber-bg:#382006;--amber-border:#7a4808;
+    --purple:#AFA9EC;--purple-mid:#7F77DD;--purple-bg:#1e1c40;--purple-border:#4a4490;
+    --teal:#9FE1CB;--teal-mid:#1D9E75;--teal-bg:#063528;--teal-border:#0d6050;
+  }
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg3);color:var(--text);min-height:100vh;padding-bottom:50px}
+.app{max-width:430px;margin:0 auto;padding:14px}
+
+/* HEADER */
+.header{background:var(--bg);border-radius:var(--radius-xl);border:0.5px solid var(--border);padding:14px 16px;margin-bottom:12px}
+.header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.app-title{font-size:18px;font-weight:600;letter-spacing:-0.3px;color:var(--text)}
+.score-badge{font-size:12px;padding:5px 12px;border-radius:20px;font-weight:600}
+.score-high{background:var(--green-bg);color:var(--green)}
+.score-mid{background:var(--amber-bg);color:var(--amber)}
+.score-low{background:var(--red-bg);color:var(--red)}
+.date-row{display:flex;align-items:center;gap:8px}
+.date-row input[type=date]{flex:1;padding:8px 10px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg2);color:var(--text);font-size:13px;font-family:inherit}
+.date-nav{display:flex;gap:4px}
+.date-nav button{padding:7px 11px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--bg2);color:var(--text2);font-size:13px;cursor:pointer}
+
+/* ROUNDELS */
+.roundels{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:12px}
+.roundel-card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:14px 10px 10px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.roundel-wrap{position:relative;width:76px;height:76px}
+.roundel-wrap svg{transform:rotate(-90deg)}
+.rdl-bg{stroke:var(--bg3)}
+.roundel-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:1px}
+.roundel-val{font-size:16px;font-weight:600;color:var(--text);line-height:1}
+.roundel-sub{font-size:10px;color:var(--text3);line-height:1}
+.roundel-label{font-size:11px;color:var(--text2);font-weight:500}
+.roundel-pct{font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px}
+
+/* SYNC */
+.sync-bar{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:var(--radius);font-size:12px;margin-bottom:12px;background:var(--bg);border:0.5px solid var(--border)}
+.sync-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.sync-dot.ok{background:var(--green-mid)}
+.sync-dot.syncing{background:var(--amber-mid);animation:pulse 1s infinite}
+.sync-dot.err{background:var(--red-mid)}
+.sync-dot.idle{background:var(--text3)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+.sync-text{flex:1;color:var(--text2)}
+
+/* NAV */
+.nav{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:5px;margin-bottom:12px}
+.nav-btn{padding:8px 4px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text2);font-size:11px;cursor:pointer;text-align:center;font-family:inherit;white-space:nowrap;font-weight:500}
+.nav-btn.active{background:var(--text);color:var(--bg);border-color:var(--text)}
+.new-pip{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--blue-mid);vertical-align:middle;margin-left:3px;margin-bottom:1px}
+
+.view{display:none}.view.active{display:block}
+
+/* SECTIONS */
+.section{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);margin-bottom:10px;overflow:hidden}
+.sec-head{display:flex;align-items:center;gap:9px;padding:11px 15px;background:var(--bg2);border-bottom:0.5px solid var(--border);cursor:pointer;user-select:none}
+.sec-head h3{font-size:14px;font-weight:500;color:var(--text);flex:1}
+.sec-icon{font-size:18px;width:22px;text-align:center}
+.chevron{font-size:12px;color:var(--text3);transition:transform 0.2s;display:inline-block}
+.chevron.open{transform:rotate(180deg)}
+.sec-body{padding:13px 15px}
+.row{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+.row:last-child{margin-bottom:0}
+.row label{font-size:13px;color:var(--text2);min-width:84px;flex-shrink:0}
+input[type=number],input[type=text],select{padding:8px 10px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);font-size:13px;font-family:inherit;width:100%}
+input[type=number]:focus,input[type=text]:focus,select:focus{border-color:var(--blue-mid);outline:none}
+input[type=number],input[type=text]{flex:1}
+.unit-sel{width:82px;flex:none}
+.inline-label{font-size:12px;color:var(--text3);flex-shrink:0}
+
+/* WATER */
+.water-bar{height:7px;background:var(--bg2);border-radius:4px;overflow:hidden;margin-bottom:5px}
+.water-fill{height:100%;background:linear-gradient(90deg,#B5D4F4,#378ADD);border-radius:4px;transition:width 0.35s}
+.water-label{font-size:11px;color:var(--text2);margin-bottom:10px}
+.cups{display:flex;flex-wrap:wrap;gap:5px}
+.cup{width:33px;height:33px;border-radius:var(--radius);border:0.5px solid var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:17px;background:var(--bg2);transition:all 0.15s;user-select:none}
+.cup:hover{border-color:var(--blue-mid);transform:scale(1.08)}
+.cup.filled{background:var(--blue-bg);border-color:var(--blue-mid)}
+
+/* SKINCARE */
+.skin-list{display:flex;flex-direction:column;gap:5px}
+.skin-item{display:flex;align-items:center;gap:10px;padding:9px 11px;border:0.5px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:all 0.15s}
+.skin-item:hover{border-color:var(--border2)}
+.skin-item.done{background:var(--green-bg);border-color:var(--green-border)}
+.chk{width:20px;height:20px;border-radius:6px;border:0.5px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;color:transparent}
+.skin-item.done .chk{background:var(--green-mid);border-color:var(--green-mid);color:#fff}
+.skin-lbl{font-size:13px;color:var(--text)}
+.skin-item.done .skin-lbl{color:var(--green)}
+
+/* STUDY */
+.study-bar{height:7px;background:var(--bg2);border-radius:4px;overflow:hidden;margin-bottom:5px}
+.study-fill{height:100%;background:linear-gradient(90deg,#AFA9EC,#7F77DD);border-radius:4px;transition:width 0.35s}
+.study-lbl{font-size:11px;color:var(--text2);margin-bottom:10px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:9px}
+.two-col .fc{display:flex;flex-direction:column;gap:4px}
+.two-col .fc label{font-size:12px;color:var(--text2);min-width:auto}
+.two-col .fc input{width:100%}
+
+/* FINANCE */
+.fin-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:11px}
+.fin-card{padding:10px 11px;border-radius:var(--radius);background:var(--bg2);border:0.5px solid var(--border)}
+.fin-card .fl{font-size:10px;color:var(--text3);margin-bottom:3px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em}
+.fin-card .fv{font-size:18px;font-weight:600}
+.fv.income{color:var(--green-mid)}.fv.expense{color:var(--red-mid)}.fv.savings{color:var(--blue-mid)}
+.txn-list{max-height:160px;overflow-y:auto;margin-bottom:9px}
+.txn-row{display:flex;align-items:center;gap:7px;padding:6px 0;border-bottom:0.5px solid var(--border);font-size:12px}
+.txn-row:last-child{border-bottom:none}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.dot.income{background:var(--green-mid)}.dot.expense{background:var(--red-mid)}.dot.savings{background:var(--blue-mid)}
+.txn-desc{flex:1;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.txn-amt{font-weight:600;flex-shrink:0}
+.txn-amt.income{color:var(--green-mid)}.txn-amt.expense{color:var(--red-mid)}.txn-amt.savings{color:var(--blue-mid)}
+.del-btn{background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;padding:0;line-height:1}
+.add-btn{width:100%;padding:8px;border:0.5px dashed var(--border2);border-radius:var(--radius);background:transparent;color:var(--text2);font-size:13px;cursor:pointer;font-family:inherit}
+.add-btn:hover{background:var(--bg2)}
+
+/* SAVE */
+.save-wrap{padding:0 0 4px}
+.save-btn{width:100%;padding:13px;background:var(--text);color:var(--bg);border:none;border-radius:var(--radius-lg);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;letter-spacing:0.01em}
+.save-btn:disabled{opacity:0.45;cursor:not-allowed}
+.save-btn:active:not(:disabled){transform:scale(0.98)}
+.toast{text-align:center;font-size:12px;margin-top:7px;height:16px}
+.toast.ok{color:var(--green-mid)}.toast.err{color:var(--red-mid)}
+
+/* EXPENSES TAB */
+.exp-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:11px}
+.exp-tab{padding:8px 4px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text2);font-size:11px;cursor:pointer;text-align:center;font-family:inherit;font-weight:500}
+.exp-tab.active{background:var(--text);color:var(--bg);border-color:var(--text)}
+.exp-panel{display:none}.exp-panel.active{display:block}
+.exp-sum-card{background:var(--bg2);border-radius:var(--radius);padding:9px 11px;border:0.5px solid var(--border)}
+.exp-sum-card .esl{font-size:10px;color:var(--text3);margin-bottom:3px;text-transform:uppercase;letter-spacing:0.04em;font-weight:600}
+.exp-sum-card .esv{font-size:16px;font-weight:600}
+.exp-summary{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.exp-roundels{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:12px}
+.exp-rdl{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:10px 6px 8px;display:flex;flex-direction:column;align-items:center;gap:5px}
+.exp-rdl-wrap{position:relative;width:54px;height:54px}
+.exp-rdl-wrap svg{transform:rotate(-90deg)}
+.exp-rdl-center{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.exp-rdl-val{font-size:11px;font-weight:600;color:var(--text)}
+.exp-rdl-name{font-size:9px;color:var(--text2);font-weight:500;text-align:center}
+.exp-entries{max-height:140px;overflow-y:auto;margin-bottom:8px}
+.exp-entry{display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:0.5px solid var(--border);font-size:11px}
+.exp-entry:last-child{border-bottom:none}
+.exp-tag{font-size:10px;padding:2px 7px;border-radius:20px;flex-shrink:0;font-weight:500}
+.exp-tag.card{background:var(--purple-bg);color:var(--purple)}
+.exp-tag.cash{background:var(--teal-bg);color:var(--teal)}
+.exp-tag.emi{background:var(--amber-bg);color:var(--amber)}
+.exp-tag.loan{background:var(--red-bg);color:var(--red)}
+.exp-desc{flex:1;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.exp-amount{font-weight:600;color:var(--text);flex-shrink:0;font-size:12px}
+/* CARD MANAGEMENT */
+.card-list-wrap{display:flex;flex-direction:column;gap:7px;margin-bottom:10px}
+.card-tile{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+.card-tile-top{padding:11px 13px 8px;position:relative}
+.card-chip{width:22px;height:16px;border-radius:3px;background:linear-gradient(135deg,#e8c87a,#c9963a);margin-bottom:8px}
+.card-name-row{display:flex;align-items:center;justify-content:space-between}
+.card-name{font-size:14px;font-weight:600;color:var(--text)}
+.card-network{font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;background:var(--bg2);color:var(--text2)}
+.card-number{font-size:11px;color:var(--text3);font-family:monospace;letter-spacing:0.1em;margin-top:4px}
+.card-tile-body{padding:0 13px 11px}
+.card-util-bar{height:6px;background:var(--bg2);border-radius:3px;overflow:hidden;margin:8px 0 5px}
+.card-util-fill{height:100%;border-radius:3px;transition:width 0.4s}
+.card-util-fill.low{background:linear-gradient(90deg,#C0DD97,#639922)}
+.card-util-fill.mid{background:linear-gradient(90deg,#FAC775,#BA7517)}
+.card-util-fill.high{background:linear-gradient(90deg,#F7C1C1,#E24B4A)}
+.card-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.card-stat{text-align:center}
+.card-stat .csv{font-size:12px;font-weight:600;color:var(--text)}
+.card-stat .csl{font-size:9px;color:var(--text3);margin-top:1px;text-transform:uppercase;letter-spacing:0.03em}
+.card-rdl-row{display:flex;overflow-x:auto;gap:8px;padding:2px 0 8px;scrollbar-width:none}
+.card-rdl-row::-webkit-scrollbar{display:none}
+.card-rdl{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:11px 8px 8px;display:flex;flex-direction:column;align-items:center;gap:5px;min-width:100px;flex-shrink:0}
+.card-rdl-wrap{position:relative;width:68px;height:68px}
+.card-rdl-wrap svg{transform:rotate(-90deg)}
+.card-rdl-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:1px}
+.card-rdl-val{font-size:12px;font-weight:600;color:var(--text);line-height:1}
+.card-rdl-sub{font-size:9px;color:var(--text3);line-height:1}
+.card-rdl-name{font-size:10px;color:var(--text2);font-weight:500;text-align:center;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card-rdl-util{font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px}
+.del-card-btn{background:none;border:none;cursor:pointer;color:var(--text3);font-size:13px;padding:3px;line-height:1;position:absolute;top:10px;right:10px}
+.emi-card-tag{font-size:10px;padding:2px 7px;border-radius:20px;background:var(--purple-bg);color:var(--purple);font-weight:500;flex-shrink:0}
+
+
+/* ROUTE TAB */
+.api-note{background:var(--amber-bg);border:0.5px solid var(--amber-border);border-radius:var(--radius);padding:9px 12px;margin-bottom:11px;font-size:11px;color:var(--amber);line-height:1.55}
+.api-note b{font-weight:600}
+.map-shell{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:11px}
+.map-area{width:100%;height:200px;position:relative;background:#e8f0e4}
+#gmap{width:100%;height:100%}
+.map-placeholder{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
+.map-placeholder svg{margin-bottom:6px;opacity:0.4}
+.map-placeholder p{font-size:12px;color:var(--text3)}
+.map-bar{padding:9px 13px;background:var(--bg2);border-top:0.5px solid var(--border);display:flex;align-items:center;gap:8px}
+.mode-group{display:flex;gap:4px}
+.mode-pill{padding:5px 10px;border:0.5px solid var(--border2);border-radius:20px;background:var(--bg);color:var(--text2);font-size:11px;cursor:pointer;font-family:inherit;font-weight:500}
+.mode-pill.active{background:var(--text);color:var(--bg);border-color:var(--text)}
+.live-btn{margin-left:auto;padding:5px 12px;border-radius:20px;border:none;font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;font-family:inherit}
+.live-btn.on{background:var(--red-bg);color:var(--red-mid)}
+.live-btn.off{background:var(--green-bg);color:var(--green-mid)}
+.pdot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.live-btn.on .pdot{background:var(--red-mid);animation:pulse 1s infinite}
+.live-btn.off .pdot{background:var(--green-mid)}
+.route-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:11px}
+.rstat{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:11px 8px;text-align:center}
+.rstat-val{font-size:20px;font-weight:600;color:var(--text);line-height:1}
+.rstat-unit{font-size:10px;color:var(--text3);margin-top:2px}
+.rstat-lbl{font-size:10px;color:var(--text2);margin-top:4px;font-weight:500}
+.stop-item{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:0.5px solid var(--border);font-size:12px}
+.stop-item:last-child{border-bottom:none}
+.stop-badge{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+.stop-badge.start{background:var(--green-bg);color:var(--green)}
+.stop-badge.mid{background:var(--blue-bg);color:var(--blue)}
+.stop-badge.end{background:var(--red-bg);color:var(--red)}
+.stop-info{flex:1}
+.stop-name{color:var(--text);font-weight:500}
+.stop-sub{font-size:10px;color:var(--text3);margin-top:1px}
+.stop-km{font-size:11px;color:var(--text2);flex-shrink:0}
+.add-stop-row{display:flex;gap:6px;margin-top:9px}
+.add-stop-row input{flex:1}
+.add-stop-btn{padding:8px 12px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text2);font-size:12px;cursor:pointer;white-space:nowrap;font-family:inherit}
+.route-total{background:var(--blue-bg);border:0.5px solid var(--blue-border);border-radius:var(--radius);padding:10px 13px;margin-top:9px;display:flex;align-items:center;justify-content:space-between}
+.rt-info{font-size:11px;color:var(--blue)}
+.rt-val{font-size:17px;font-weight:700;color:var(--blue)}
+.sync-km-btn{padding:5px 12px;border:0.5px solid var(--blue);border-radius:20px;background:transparent;color:var(--blue);font-size:11px;cursor:pointer;font-family:inherit;font-weight:500}
+.synced-note{font-size:11px;color:var(--green-mid);padding:5px 0 0;display:none}
+.hist-row{display:flex;align-items:center;gap:9px;padding:8px 11px;background:var(--bg2);border-radius:var(--radius);border:0.5px solid var(--border);margin-bottom:6px}
+.hist-date{font-size:11px;color:var(--text2);min-width:48px;flex-shrink:0}
+.hist-route-name{flex:1;font-size:12px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hist-km{font-size:12px;font-weight:600;color:var(--blue-mid);flex-shrink:0}
+
+/* MODAL */
+.modal-wrap{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:200;align-items:flex-end;justify-content:center;padding:0}
+.modal-wrap.open{display:flex}
+.modal{background:var(--bg);border-radius:var(--radius-xl) var(--radius-xl) 0 0;padding:20px 18px 34px;width:100%;max-width:430px;border-top:0.5px solid var(--border)}
+.modal-handle{width:36px;height:4px;border-radius:2px;background:var(--border2);margin:0 auto 16px}
+.modal h4{font-size:15px;font-weight:600;margin-bottom:14px;color:var(--text)}
+.modal-row{margin-bottom:10px}
+.modal-btns{display:flex;gap:8px;margin-top:14px}
+.mbtn{flex:1;padding:10px;border-radius:var(--radius);border:0.5px solid var(--border2);cursor:pointer;font-size:13px;font-family:inherit;background:var(--bg2);color:var(--text);font-weight:500}
+.mbtn.primary{background:var(--text);color:var(--bg);border-color:var(--text)}
+
+/* HISTORY */
+.day-card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);margin-bottom:10px;overflow:hidden;cursor:pointer}
+.day-card:hover{border-color:var(--border2)}
+.dc-head{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg2)}
+.dc-title{font-size:14px;font-weight:500;color:var(--text)}
+.score-pill{font-size:11px;padding:3px 9px;border-radius:20px;font-weight:600}
+.dc-body{padding:11px 14px}
+.dc-stats{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}
+.dc-stat{background:var(--bg2);border-radius:var(--radius);padding:7px 10px;border:0.5px solid var(--border)}
+.dc-stat .sl{font-size:11px;color:var(--text2);margin-bottom:2px}
+.dc-stat .sv{font-size:13px;font-weight:500;color:var(--text)}
+.txn-mini{font-size:12px;color:var(--text2);display:flex;gap:10px;flex-wrap:wrap}
+.back-btn{display:flex;align-items:center;gap:6px;padding:6px 0 12px;cursor:pointer;color:var(--text2);font-size:13px;border:none;background:none;font-family:inherit}
+.detail-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.sec-divider{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin:14px 0 7px}
+.sum-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px}
+.sum-card{background:var(--bg2);border-radius:var(--radius);padding:10px 11px;border:0.5px solid var(--border)}
+.sum-card .scl{font-size:11px;color:var(--text2);margin-bottom:3px}
+.sum-card .scv{font-size:17px;font-weight:600;color:var(--text)}
+.sum-card .scs{font-size:11px;color:var(--text3);margin-top:1px}
+.skin-tags{display:flex;flex-wrap:wrap;gap:4px}
+.stag{font-size:11px;padding:3px 9px;border-radius:20px;font-weight:500}
+.stag.done{background:var(--green-bg);color:var(--green);border:0.5px solid var(--green-border)}
+.stag.miss{background:var(--red-bg);color:var(--red);border:0.5px solid var(--red-border)}
+.note-box{background:var(--bg2);border-radius:var(--radius);padding:9px 11px;font-size:12px;color:var(--text2);font-style:italic;margin-top:6px;border:0.5px solid var(--border)}
+.empty{text-align:center;padding:32px 16px;color:var(--text2);font-size:13px}
+.empty-icon{font-size:30px;display:block;margin-bottom:8px}
+.loading{text-align:center;padding:24px;color:var(--text3);font-size:13px}
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.bar-date{font-size:11px;color:var(--text2);min-width:58px;flex-shrink:0}
+.bar-track{flex:1;height:22px;background:var(--bg2);border-radius:6px;overflow:hidden}
+.bar-fill{height:100%;border-radius:6px;display:flex;align-items:center;padding-left:8px;min-width:32px;transition:width 0.5s}
+.bar-fill .bp{font-size:11px;font-weight:600}
+.bar-fill.bh{background:var(--green-bg)}.bar-fill.bh .bp{color:var(--green)}
+.bar-fill.bm{background:var(--amber-bg)}.bar-fill.bm .bp{color:var(--amber)}
+.bar-fill.bl{background:var(--red-bg)}.bar-fill.bl .bp{color:var(--red)}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-top">
+    <span class="app-title">&#128197; Daily Tracker</span>
+    <span class="score-badge score-low" id="score-badge">Score: 0%</span>
+  </div>
+  <div class="date-row">
+    <input type="date" id="date-picker" onchange="loadDay()">
+    <div class="date-nav">
+      <button onclick="changeDay(-1)">&#8592;</button>
+      <button onclick="goToday()">Today</button>
+      <button onclick="changeDay(1)">&#8594;</button>
+    </div>
+  </div>
+</div>
+
+<!-- ROUNDELS -->
+<div class="roundels">
+  <div class="roundel-card">
+    <div class="roundel-wrap">
+      <svg width="76" height="76" viewBox="0 0 76 76">
+        <circle cx="38" cy="38" r="30" fill="none" class="rdl-bg" stroke-width="7"/>
+        <circle id="rdl-water" cx="38" cy="38" r="30" fill="none" stroke="#378ADD" stroke-width="7" stroke-dasharray="188.5" stroke-dashoffset="188.5" stroke-linecap="round"/>
+      </svg>
+      <div class="roundel-center">
+        <span class="roundel-val" id="rv-water">0</span>
+        <span class="roundel-sub">/ 5L</span>
+      </div>
+    </div>
+    <span class="roundel-label">&#128167; Water</span>
+    <span class="roundel-pct" id="rp-water" style="background:var(--blue-bg);color:var(--blue)">0%</span>
+  </div>
+  <div class="roundel-card">
+    <div class="roundel-wrap">
+      <svg width="76" height="76" viewBox="0 0 76 76">
+        <circle cx="38" cy="38" r="30" fill="none" class="rdl-bg" stroke-width="7"/>
+        <circle id="rdl-study" cx="38" cy="38" r="30" fill="none" stroke="#7F77DD" stroke-width="7" stroke-dasharray="188.5" stroke-dashoffset="188.5" stroke-linecap="round"/>
+      </svg>
+      <div class="roundel-center">
+        <span class="roundel-val" id="rv-study">0</span>
+        <span class="roundel-sub">/ 4h</span>
+      </div>
+    </div>
+    <span class="roundel-label">&#128218; Study</span>
+    <span class="roundel-pct" id="rp-study" style="background:var(--purple-bg);color:var(--purple)">0%</span>
+  </div>
+  <div class="roundel-card">
+    <div class="roundel-wrap">
+      <svg width="76" height="76" viewBox="0 0 76 76">
+        <circle cx="38" cy="38" r="30" fill="none" class="rdl-bg" stroke-width="7"/>
+        <circle id="rdl-skin" cx="38" cy="38" r="30" fill="none" stroke="#639922" stroke-width="7" stroke-dasharray="188.5" stroke-dashoffset="188.5" stroke-linecap="round"/>
+      </svg>
+      <div class="roundel-center">
+        <span class="roundel-val" id="rv-skin">0</span>
+        <span class="roundel-sub">/ 8</span>
+      </div>
+    </div>
+    <span class="roundel-label">&#10024; Skincare</span>
+    <span class="roundel-pct" id="rp-skin" style="background:var(--green-bg);color:var(--green)">0%</span>
+  </div>
+  <div class="roundel-card">
+    <div class="roundel-wrap">
+      <svg width="76" height="76" viewBox="0 0 76 76">
+        <circle cx="38" cy="38" r="30" fill="none" class="rdl-bg" stroke-width="7"/>
+        <circle id="rdl-km" cx="38" cy="38" r="30" fill="none" stroke="#E24B4A" stroke-width="7" stroke-dasharray="188.5" stroke-dashoffset="188.5" stroke-linecap="round"/>
+      </svg>
+      <div class="roundel-center">
+        <span class="roundel-val" id="rv-km" style="font-size:13px">0</span>
+        <span class="roundel-sub">km</span>
+      </div>
+    </div>
+    <span class="roundel-label">&#128739; Route</span>
+    <span class="roundel-pct" id="rp-km" style="background:var(--red-bg);color:var(--red)">0km</span>
+  </div>
+</div>
+
+<!-- SYNC -->
+<div class="sync-bar" id="sync-bar">
+  <div class="sync-dot idle" id="sync-dot"></div>
+  <span class="sync-text" id="sync-text">Ready</span>
+</div>
+
+<!-- NAV -->
+<div class="nav">
+  <button class="nav-btn active" onclick="showView('tracker')" id="tab-tracker">&#128221; Tracker</button>
+  <button class="nav-btn" onclick="showView('expenses')" id="tab-expenses">&#128179; Expenses<span class="new-pip"></span></button>
+  <button class="nav-btn" onclick="showView('route')" id="tab-route">&#128739; Route<span class="new-pip"></span></button>
+  <button class="nav-btn" onclick="showView('history')" id="tab-history">&#128202; Review</button>
+</div>
+
+<!-- ══ TRACKER ══ -->
+<div class="view active" id="view-tracker">
+
+  <div class="section">
+    <div class="sec-head" onclick="toggle('fuel')">
+      <span class="sec-icon">&#9981;</span>
+      <h3>Fuel &amp; kilometres</h3>
+      <span class="chevron open" id="ch-fuel">&#8964;</span>
+    </div>
+    <div class="sec-body" id="bd-fuel">
+      <div class="row">
+        <label>Fuel added</label>
+        <input type="number" id="fuel-amt" min="0" step="0.1" placeholder="0" style="max-width:90px;flex:none">
+        <select id="fuel-unit" class="unit-sel"><option value="L">Litres</option><option value="gal">Gallons</option><option value="ml">ml</option></select>
+      </div>
+      <div class="row">
+        <label>Cost</label>
+        <input type="number" id="fuel-cost" min="0" step="1" placeholder="0">
+        <span class="inline-label">&#8377;</span>
+      </div>
+      <div class="row">
+        <label>Km driven</label>
+        <input type="number" id="km" min="0" step="0.1" placeholder="0" oninput="updateScore()">
+        <select id="km-unit" class="unit-sel"><option value="km">km</option><option value="mi">miles</option></select>
+      </div>
+      <div class="row">
+        <label>Odometer</label>
+        <input type="number" id="odometer" min="0" step="1" placeholder="Optional">
+        <select id="odo-unit" class="unit-sel"><option value="km">km</option><option value="mi">miles</option></select>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="sec-head" onclick="toggle('water')">
+      <span class="sec-icon">&#128167;</span>
+      <h3>Water &mdash; 5 litres</h3>
+      <span class="chevron open" id="ch-water">&#8964;</span>
+    </div>
+    <div class="sec-body" id="bd-water">
+      <div class="water-bar"><div class="water-fill" id="w-fill" style="width:0%"></div></div>
+      <div class="water-label" id="w-lbl">0 / 5L &mdash; tap any glass to fill up to that point</div>
+      <div class="cups" id="cups"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="sec-head" onclick="toggle('skin')">
+      <span class="sec-icon">&#10024;</span>
+      <h3>Skincare routine</h3>
+      <span class="chevron open" id="ch-skin">&#8964;</span>
+    </div>
+    <div class="sec-body" id="bd-skin">
+      <div class="skin-list" id="skin-list"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="sec-head" onclick="toggle('study')">
+      <span class="sec-icon">&#128218;</span>
+      <h3>Study session</h3>
+      <span class="chevron open" id="ch-study">&#8964;</span>
+    </div>
+    <div class="sec-body" id="bd-study">
+      <div class="study-bar"><div class="study-fill" id="s-fill" style="width:0%"></div></div>
+      <div class="study-lbl" id="s-lbl">0 / 4h</div>
+      <div class="two-col">
+        <div class="fc"><label>Subject</label><input type="text" id="study-sub" placeholder="e.g. SQL, Maths"></div>
+        <div class="fc"><label>Hours studied</label><input type="number" id="study-hrs" min="0" step="0.25" placeholder="0" oninput="updateStudyBar()"></div>
+      </div>
+      <div class="row">
+        <label>Daily goal</label>
+        <input type="number" id="study-goal" min="0.5" max="16" step="0.5" value="4" style="max-width:70px;flex:none" oninput="updateStudyBar()">
+        <span class="inline-label">hours</span>
+      </div>
+      <div class="row"><label>Notes</label><input type="text" id="study-notes" placeholder="What did you cover?"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="sec-head" onclick="toggle('fin')">
+      <span class="sec-icon">&#8377;</span>
+      <h3>Income &amp; expenses</h3>
+      <span class="chevron open" id="ch-fin">&#8964;</span>
+    </div>
+    <div class="sec-body" id="bd-fin">
+      <div class="fin-grid">
+        <div class="fin-card"><div class="fl">&#8593; Income</div><div class="fv income" id="f-inc">&#8377;0</div></div>
+        <div class="fin-card"><div class="fl">&#8595; Spent</div><div class="fv expense" id="f-exp">&#8377;0</div></div>
+        <div class="fin-card"><div class="fl">&#128023; Saved</div><div class="fv savings" id="f-sav">&#8377;0</div></div>
+        <div class="fin-card"><div class="fl">&#9878; Balance</div><div class="fv" id="f-net">&#8377;0</div></div>
+      </div>
+      <div class="txn-list" id="txn-list"></div>
+      <button class="add-btn" onclick="openModal()">+ Add transaction</button>
+    </div>
+  </div>
+
+  <div class="save-wrap">
+    <button class="save-btn" onclick="saveDay()" id="save-btn">&#9729; Save to cloud</button>
+    <div class="toast" id="toast"></div>
+  </div>
+</div>
+
+<!-- ══ EXPENSES ══ -->
+<div class="view" id="view-expenses">
+  <div class="exp-roundels">
+    <div class="exp-rdl">
+      <div class="exp-rdl-wrap">
+        <svg width="54" height="54" viewBox="0 0 54 54">
+          <circle cx="27" cy="27" r="21" fill="none" class="rdl-bg" stroke-width="5"/>
+          <circle id="erd-card" cx="27" cy="27" r="21" fill="none" stroke="#7F77DD" stroke-width="5" stroke-dasharray="131.9" stroke-dashoffset="131.9" stroke-linecap="round"/>
+        </svg>
+        <div class="exp-rdl-center"><span class="exp-rdl-val" id="erv-card">&#8377;0</span></div>
+      </div>
+      <span class="exp-rdl-name">&#128179; Card</span>
+    </div>
+    <div class="exp-rdl">
+      <div class="exp-rdl-wrap">
+        <svg width="54" height="54" viewBox="0 0 54 54">
+          <circle cx="27" cy="27" r="21" fill="none" class="rdl-bg" stroke-width="5"/>
+          <circle id="erd-cash" cx="27" cy="27" r="21" fill="none" stroke="#1D9E75" stroke-width="5" stroke-dasharray="131.9" stroke-dashoffset="131.9" stroke-linecap="round"/>
+        </svg>
+        <div class="exp-rdl-center"><span class="exp-rdl-val" id="erv-cash">&#8377;0</span></div>
+      </div>
+      <span class="exp-rdl-name">&#128181; Cash</span>
+    </div>
+    <div class="exp-rdl">
+      <div class="exp-rdl-wrap">
+        <svg width="54" height="54" viewBox="0 0 54 54">
+          <circle cx="27" cy="27" r="21" fill="none" class="rdl-bg" stroke-width="5"/>
+          <circle id="erd-emi" cx="27" cy="27" r="21" fill="none" stroke="#BA7517" stroke-width="5" stroke-dasharray="131.9" stroke-dashoffset="131.9" stroke-linecap="round"/>
+        </svg>
+        <div class="exp-rdl-center"><span class="exp-rdl-val" id="erv-emi">&#8377;0</span></div>
+      </div>
+      <span class="exp-rdl-name">&#128198; EMI</span>
+    </div>
+    <div class="exp-rdl">
+      <div class="exp-rdl-wrap">
+        <svg width="54" height="54" viewBox="0 0 54 54">
+          <circle cx="27" cy="27" r="21" fill="none" class="rdl-bg" stroke-width="5"/>
+          <circle id="erd-loan" cx="27" cy="27" r="21" fill="none" stroke="#E24B4A" stroke-width="5" stroke-dasharray="131.9" stroke-dashoffset="131.9" stroke-linecap="round"/>
+        </svg>
+        <div class="exp-rdl-center"><span class="exp-rdl-val" id="erv-loan">&#8377;0</span></div>
+      </div>
+      <span class="exp-rdl-name">&#127968; Loan</span>
+    </div>
+  </div>
+
+  <div class="exp-tabs">
+    <button class="exp-tab active" onclick="switchExp('card',this)">&#128179; Card</button>
+    <button class="exp-tab" onclick="switchExp('cash',this)">&#128181; Cash</button>
+    <button class="exp-tab" onclick="switchExp('emi',this)">&#128198; EMI</button>
+    <button class="exp-tab" onclick="switchExp('loan',this)">&#127968; Loan</button>
+  </div>
+
+  <div class="exp-panel active" id="ep-card">
+    <!-- PER-CARD ROUNDELS -->
+    <div class="card-rdl-row" id="card-rdl-row">
+      <div style="font-size:12px;color:var(--text3);padding:10px 4px;display:flex;align-items:center">Add cards below to see utilisation roundels</div>
+    </div>
+
+    <!-- MY CARDS -->
+    <div class="section">
+      <div class="sec-head"><span class="sec-icon">&#128179;</span><h3>My cards</h3><button class="add-btn" style="width:auto;padding:4px 11px;border-style:solid;border-color:var(--border2);font-size:11px;margin-left:auto" onclick="openCardModal()">+ Add card</button></div>
+      <div class="sec-body" style="padding:10px 13px">
+        <div class="card-list-wrap" id="card-list-wrap">
+          <div style="font-size:12px;color:var(--text3);padding:6px 0">No cards added yet. Tap + Add card.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CARD SPENDING -->
+    <div class="section">
+      <div class="sec-head"><span class="sec-icon">&#128200;</span><h3>Card spending log</h3></div>
+      <div class="sec-body">
+        <div class="exp-summary">
+          <div class="exp-sum-card"><div class="esl">Total spent</div><div class="esv" style="color:var(--purple)" id="card-total">&#8377;0</div></div>
+          <div class="exp-sum-card"><div class="esl">Entries</div><div class="esv" style="color:var(--purple)" id="card-count">0</div></div>
+        </div>
+        <div class="exp-entries" id="card-entries"></div>
+        <div class="row" style="margin-bottom:7px"><label>Card used</label>
+          <select id="card-which" style="flex:1"><option value="">— select card —</option></select>
+        </div>
+        <div class="row" style="margin-bottom:7px"><label>Description</label><input type="text" id="card-desc" placeholder="e.g. Amazon, Swiggy"></div>
+        <div class="row" style="margin-bottom:9px"><label>Amount (&#8377;)</label><input type="number" id="card-amt" placeholder="0" min="0"></div>
+        <button class="add-btn" onclick="addExpEntry('card')">+ Add card expense</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="exp-panel" id="ep-cash">
+    <div class="section">
+      <div class="sec-head"><span class="sec-icon">&#128181;</span><h3>Cash expenses</h3></div>
+      <div class="sec-body">
+        <div class="exp-summary">
+          <div class="exp-sum-card"><div class="esl">Total entered</div><div class="esv" style="color:var(--teal)" id="cash-total">&#8377;0</div></div>
+          <div class="exp-sum-card"><div class="esl">Entries</div><div class="esv" style="color:var(--teal)" id="cash-count">0</div></div>
+        </div>
+        <div class="exp-entries" id="cash-entries"></div>
+        <div class="row" style="margin-bottom:7px"><label>Description</label><input type="text" id="cash-desc" placeholder="e.g. Auto, Market"></div>
+        <div class="row" style="margin-bottom:9px"><label>Amount (&#8377;)</label><input type="number" id="cash-amt" placeholder="0" min="0"></div>
+        <button class="add-btn" onclick="addExpEntry('cash')">+ Add cash expense</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="exp-panel" id="ep-emi">
+    <div class="section">
+      <div class="sec-head"><span class="sec-icon">&#128198;</span><h3>Active EMIs</h3></div>
+      <div class="sec-body">
+        <div class="exp-summary">
+          <div class="exp-sum-card"><div class="esl">Monthly EMI</div><div class="esv" style="color:var(--amber)" id="emi-total">&#8377;0</div></div>
+          <div class="exp-sum-card"><div class="esl">Items</div><div class="esv" style="color:var(--amber)" id="emi-count">0</div></div>
+        </div>
+        <div class="exp-entries" id="emi-entries"></div>
+        <div class="row" style="margin-bottom:7px"><label>Item name</label><input type="text" id="emi-desc" placeholder="e.g. iPhone 15, Laptop"></div>
+        <div class="row" style="margin-bottom:7px"><label>EMI amount</label><input type="number" id="emi-amt" placeholder="&#8377;" min="0"></div>
+        <div class="row" style="margin-bottom:7px"><label>Months left</label><input type="number" id="emi-months" placeholder="months" min="0"></div>
+        <div class="row" style="margin-bottom:9px"><label>Linked card</label>
+          <select id="emi-card-link" style="flex:1"><option value="">None / cash</option></select>
+        </div>
+        <button class="add-btn" onclick="addExpEntry('emi')">+ Add EMI</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="exp-panel" id="ep-loan">
+    <div class="section">
+      <div class="sec-head"><span class="sec-icon">&#127968;</span><h3>Loan repayments</h3></div>
+      <div class="sec-body">
+        <div class="exp-summary">
+          <div class="exp-sum-card"><div class="esl">Paid this month</div><div class="esv" style="color:var(--red)" id="loan-total">&#8377;0</div></div>
+          <div class="exp-sum-card"><div class="esl">Items</div><div class="esv" style="color:var(--red)" id="loan-count">0</div></div>
+        </div>
+        <div class="exp-entries" id="loan-entries"></div>
+        <div class="row" style="margin-bottom:7px"><label>Lender</label><input type="text" id="loan-desc" placeholder="e.g. SBI, HDFC"></div>
+        <div class="row" style="margin-bottom:7px"><label>Payment (&#8377;)</label><input type="number" id="loan-amt" placeholder="&#8377;" min="0"></div>
+        <div class="row" style="margin-bottom:9px"><label>Outstanding</label><input type="number" id="loan-outstanding" placeholder="&#8377;" min="0"></div>
+        <button class="add-btn" onclick="addExpEntry('loan')">+ Add loan entry</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="save-wrap">
+    <button class="save-btn" onclick="saveDay()">&#9729; Save expenses</button>
+    <div class="toast" id="toast2"></div>
+  </div>
+</div>
+
+<!-- ══ ROUTE ══ -->
+<div class="view" id="view-route">
+
+  <div class="api-note">
+    <b>&#128273; Google Maps API key required.</b> Replace <code>YOUR_GOOGLE_MAPS_KEY</code> in this file, then the live map and real distance calculation will activate automatically. Get a free key at <b>console.cloud.google.com</b> &#8594; Maps JavaScript API.
+  </div>
+
+  <div class="map-shell">
+    <div class="map-area">
+      <div id="gmap"></div>
+      <div class="map-placeholder" id="map-ph">
+        <svg width="40" height="40" viewBox="0 0 40 40" fill="none"><circle cx="20" cy="20" r="18" stroke="#aaa" stroke-width="1.5"/><path d="M20 8C15.58 8 12 11.58 12 16c0 6 8 16 8 16s8-10 8-16c0-4.42-3.58-8-8-8zm0 10.5A2.5 2.5 0 1120 13a2.5 2.5 0 010 5.5z" fill="#aaa"/></svg>
+        <p>Map loads with API key</p>
+      </div>
+    </div>
+    <div class="map-bar">
+      <div class="mode-group">
+        <button class="mode-pill active" onclick="setMode(this,'driving')">&#128663; Drive</button>
+        <button class="mode-pill" onclick="setMode(this,'two-wheeler')">&#127949; Bike</button>
+        <button class="mode-pill" onclick="setMode(this,'walking')">&#128694; Walk</button>
+      </div>
+      <button class="live-btn off" id="live-btn" onclick="toggleLive()">
+        <span class="pdot"></span> Start tracking
+      </button>
+    </div>
+  </div>
+
+  <div class="route-stats">
+    <div class="rstat"><div class="rstat-val" id="route-km-val">0</div><div class="rstat-unit">km</div><div class="rstat-lbl">Distance</div></div>
+    <div class="rstat"><div class="rstat-val" id="route-time-val">0</div><div class="rstat-unit">min</div><div class="rstat-lbl">Est. time</div></div>
+    <div class="rstat"><div class="rstat-val" id="route-stops-val">0</div><div class="rstat-unit">stops</div><div class="rstat-lbl">Route stops</div></div>
+  </div>
+
+  <div class="section">
+    <div class="sec-head"><span class="sec-icon">&#128205;</span><h3>Today&#39;s stops</h3></div>
+    <div class="sec-body">
+      <div id="route-stop-list"></div>
+      <div class="add-stop-row">
+        <input type="text" id="route-inp" placeholder="Add a stop (place name or address)">
+        <button class="add-stop-btn" onclick="addRouteStop()">+ Add</button>
+      </div>
+      <div class="route-total" id="route-total-box">
+        <div><div class="rt-info">Total route distance</div><div class="rt-val" id="route-total-km">0 km</div></div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
+          <button class="sync-km-btn" onclick="syncRouteToFuel()">&#8594; Sync to km field</button>
+          <div class="synced-note" id="synced-note">&#10003; Synced to Tracker</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="sec-head"><span class="sec-icon">&#128198;</span><h3>Route history</h3></div>
+    <div class="sec-body">
+      <div id="route-history-list"><div style="font-size:12px;color:var(--text3)">Saved routes will appear here after you save days.</div></div>
+      <div class="week-strip" id="route-week-strip" style="display:none">
+        <div class="ws-item"><div class="wv" id="rws-km">0</div><div class="wl">Week km</div></div>
+        <div class="ws-item"><div class="wv" id="rws-avg">0</div><div class="wl">Avg / day</div></div>
+        <div class="ws-item"><div class="wv" id="rws-days">0</div><div class="wl">Days tracked</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="save-wrap">
+    <button class="save-btn" onclick="saveDay()">&#9729; Save route &amp; day</button>
+  </div>
+</div>
+
+<!-- ══ HISTORY ══ -->
+<div class="view" id="view-history">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:12px">
+    <button class="nav-btn active" onclick="switchReview('list')" id="rtab-list">&#128203; History</button>
+    <button class="nav-btn" onclick="switchReview('week')" id="rtab-week">&#128200; Summary</button>
+  </div>
+  <div id="review-list"></div>
+  <div id="review-week" style="display:none"></div>
+  <div id="review-detail" style="display:none"></div>
+</div>
+
+</div>
+
+<!-- MODAL -->
+<div class="modal-wrap" id="modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h4>Add transaction</h4>
+    <div class="modal-row">
+      <select id="txn-type" style="width:100%">
+        <option value="income">&#8593; Income</option>
+        <option value="expense">&#8595; Expense</option>
+        <option value="savings">&#128023; Savings</option>
+      </select>
+    </div>
+    <div class="modal-row"><input type="text" id="txn-desc" placeholder="Description (e.g. Salary, Groceries)" style="width:100%"></div>
+    <div class="modal-row"><input type="number" id="txn-amt" placeholder="Amount (&#8377;)" min="0" step="1" style="width:100%"></div>
+    <div class="modal-btns">
+      <button class="mbtn" onclick="closeModal()">Cancel</button>
+      <button class="mbtn primary" onclick="addTxn()">Add</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── SUPABASE ─────────────────────────────────────────────
+const SB_URL='https://svwbtrzwjjxyjphvqauw.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN2d2J0cnp3amp4eWpwaHZxYXV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExMTEyMzAsImV4cCI6MjA5NjY4NzIzMH0.puvxh29psNCW06c107qmNMrqaj4JRm6KqOgystlatIM';
+const TABLE='daily_tracker';
+const HDR={'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Prefer':'return=representation'};
+
+async function sbGet(iso){const r=await fetch(`${SB_URL}/rest/v1/${TABLE}?iso_date=eq.${iso}&select=*`,{headers:HDR});if(!r.ok)throw new Error('Fetch '+r.status);const d=await r.json();return d[0]||null;}
+async function sbUpsert(p){const c=await fetch(`${SB_URL}/rest/v1/${TABLE}?iso_date=eq.${p.iso_date}&select=id`,{headers:HDR});const ex=c.ok?await c.json():[];if(ex.length>0){const r=await fetch(`${SB_URL}/rest/v1/${TABLE}?iso_date=eq.${p.iso_date}`,{method:'PATCH',headers:{...HDR,'Prefer':'return=representation'},body:JSON.stringify(p)});if(!r.ok)throw new Error(await r.text());return r.json();}else{const r=await fetch(`${SB_URL}/rest/v1/${TABLE}`,{method:'POST',headers:{...HDR,'Prefer':'return=representation'},body:JSON.stringify(p)});if(!r.ok)throw new Error(await r.text());return r.json();}}
+async function sbGetAll(){const r=await fetch(`${SB_URL}/rest/v1/${TABLE}?select=*&order=iso_date.desc&limit=90`,{headers:HDR});if(!r.ok)throw new Error('Fetch '+r.status);return r.json();}
+
+function syncStatus(s,m){document.getElementById('sync-dot').className='sync-dot '+s;document.getElementById('sync-text').textContent=m;}
+
+// ── CONSTANTS ────────────────────────────────────────────
+const SKIN_STEPS=['Cleanse','Tone / toner','Serum','Moisturiser','Sunscreen (AM)','Eye cream','Face mist','Sheet mask'];
+let waterCount=0,skinDone={},transactions=[],currentDate='';
+let expData={card:[],cash:[],emi:[],loan:[]};let myCards=[];let selectedCardColor='purple';
+let routeStops=[],routeKm=0,routeMode='driving',liveTracking=false;
+const LETTERS='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+// ── DATES ────────────────────────────────────────────────
+function fmtDate(iso){const d=new Date(iso+'T00:00:00');const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];const mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return days[d.getDay()]+', '+d.getDate()+' '+mo[d.getMonth()]+' '+d.getFullYear();}
+function todayISO(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function goToday(){document.getElementById('date-picker').value=todayISO();loadDay();}
+function changeDay(delta){const dp=document.getElementById('date-picker');const d=new Date(dp.value+'T00:00:00');d.setDate(d.getDate()+delta);dp.value=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');loadDay();}
+
+// ── INIT ─────────────────────────────────────────────────
+function init(){buildCups();buildSkin();document.getElementById('date-picker').value=todayISO();currentDate=todayISO();loadDay();}
+
+// ── LOAD ─────────────────────────────────────────────────
+async function loadDay(){currentDate=document.getElementById('date-picker').value;resetForm();syncStatus('syncing','Loading '+fmtDate(currentDate)+'…');try{const row=await sbGet(currentDate);if(row){populateForm(row);syncStatus('ok','Loaded from cloud \u2713');}else{syncStatus('idle','No data for this date yet');}}catch(e){syncStatus('err','Offline \u2014 changes save locally only');const local=localStorage.getItem('dt_'+currentDate);if(local)try{populateForm(JSON.parse(local));}catch(_){}}updateScore();}
+
+function populateForm(row){
+  setVal('fuel-amt',row.fuel_amt);setVal('fuel-unit',row.fuel_unit||'L');setVal('fuel-cost',row.fuel_cost);
+  setVal('km',row.km_driven);setVal('km-unit',row.km_unit||'km');setVal('odometer',row.odometer);setVal('odo-unit','km');
+  waterCount=row.water_glasses||0;
+  document.querySelectorAll('.cup').forEach((c,i)=>c.classList.toggle('filled',i<waterCount));
+  updateWater();
+  skinDone={};(row.skin_done||[]).forEach(s=>{const idx=SKIN_STEPS.indexOf(s);if(idx>=0)skinDone[idx]=true;});
+  SKIN_STEPS.forEach((_,i)=>document.getElementById('sk'+i).classList.toggle('done',!!skinDone[i]));
+  setVal('study-sub',row.study_subject);setVal('study-hrs',row.study_hours);setVal('study-goal',row.study_goal||4);setVal('study-notes',row.study_notes);
+  updateStudyBar();
+  transactions=row.transactions||[];renderTxns();
+  expData=row.exp_data||{card:[],cash:[],emi:[],loan:[]};renderAllExp();
+  routeStops=row.route_stops||[];routeKm=row.route_km||0;
+  renderRouteStops();updateRouteStats();
+  myCards=row.my_cards||myCards;renderCards();refreshCardDropdowns();
+}
+
+// ── SAVE ─────────────────────────────────────────────────
+async function saveDay(){const btn=document.getElementById('save-btn');btn.disabled=true;btn.textContent='Saving\u2026';syncStatus('syncing','Saving\u2026');
+  const inc=transactions.filter(t=>t.type==='income').reduce((s,t)=>s+t.amt,0);
+  const exp=transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amt,0);
+  const sav=transactions.filter(t=>t.type==='savings').reduce((s,t)=>s+t.amt,0);
+  const payload={iso_date:currentDate,date_label:fmtDate(currentDate),
+    water_glasses:waterCount,
+    study_hours:parseFloat(document.getElementById('study-hrs').value)||0,
+    study_subject:document.getElementById('study-sub').value||null,
+    study_notes:document.getElementById('study-notes').value||null,
+    study_goal:parseFloat(document.getElementById('study-goal').value)||4,
+    fuel_amt:parseFloat(document.getElementById('fuel-amt').value)||null,
+    fuel_unit:document.getElementById('fuel-unit').value,
+    fuel_cost:parseFloat(document.getElementById('fuel-cost').value)||null,
+    km_driven:parseFloat(document.getElementById('km').value)||routeKm||null,
+    km_unit:document.getElementById('km-unit').value,
+    odometer:parseFloat(document.getElementById('odometer').value)||null,
+    skin_done:Object.keys(skinDone).filter(k=>skinDone[k]).map(k=>SKIN_STEPS[k]),
+    income:inc,expense:exp,savings:sav,transactions,
+    exp_data:expData,route_stops:routeStops,route_km:routeKm,
+    score:calcScore({water:{glasses:waterCount},skincare:{done:Object.keys(skinDone).filter(k=>skinDone[k]).map(k=>SKIN_STEPS[k])},study:{hours:document.getElementById('study-hrs').value,goal:document.getElementById('study-goal').value},fuel:{km:document.getElementById('km').value||routeKm},finance:{transactions}}),
+    my_cards:myCards,
+    updated_at:new Date().toISOString()};
+  localStorage.setItem('dt_'+currentDate,JSON.stringify(payload));
+  try{await sbUpsert(payload);syncStatus('ok','Saved \u2713 \u2014 '+fmtDate(currentDate));showToast('\u2713 Saved to cloud','ok');}
+  catch(e){syncStatus('err','Error: '+e.message);showToast('\u26a0 '+e.message,'err');}
+  btn.disabled=false;btn.textContent='\u2601 Save to cloud';}
+
+function showToast(msg,type){['toast','toast2'].forEach(id=>{const t=document.getElementById(id);if(t){t.textContent=msg;t.className='toast '+type;setTimeout(()=>{t.textContent='';t.className='toast';},4000);}});}
+
+function resetForm(){['fuel-amt','fuel-cost','km','odometer','study-sub','study-hrs','study-notes'].forEach(id=>setVal(id,''));setVal('fuel-unit','L');setVal('km-unit','km');setVal('odo-unit','km');setVal('study-goal','4');waterCount=0;document.querySelectorAll('.cup').forEach(c=>c.classList.remove('filled'));updateWater();skinDone={};SKIN_STEPS.forEach((_,i)=>document.getElementById('sk'+i)?.classList.remove('done'));transactions=[];renderTxns();expData={card:[],cash:[],emi:[],loan:[]};renderAllExp();routeStops=[];routeKm=0;renderRouteStops();updateRouteStats();renderCards();refreshCardDropdowns();}
+function setVal(id,val){const el=document.getElementById(id);if(el&&val!==undefined&&val!==null)el.value=val;}
+
+// ── WATER ─────────────────────────────────────────────────
+function buildCups(){const c=document.getElementById('cups');for(let i=0;i<20;i++){const d=document.createElement('div');d.className='cup';d.textContent='\uD83E\uDD5B';d.id='cp'+i;d.onclick=()=>tapCup(i);c.appendChild(d);}}
+function tapCup(i){
+  if(i<waterCount){waterCount=i;}
+  else{waterCount=i+1;}
+  for(let j=0;j<20;j++)document.getElementById('cp'+j).classList.toggle('filled',j<waterCount);
+  updateWater();updateScore();
+}
+function updateWater(){document.getElementById('w-fill').style.width=Math.min(100,waterCount*5)+'%';document.getElementById('w-lbl').textContent=(waterCount*0.25).toFixed(2)+'L / 5L \u2014 tap any glass to fill up to that point';updateRoundels();}
+
+// ── SKINCARE ──────────────────────────────────────────────
+function buildSkin(){const list=document.getElementById('skin-list');SKIN_STEPS.forEach((s,i)=>{const d=document.createElement('div');d.className='skin-item';d.id='sk'+i;d.innerHTML=`<div class="chk" id="chk${i}">\u2713</div><span class="skin-lbl">${s}</span>`;d.onclick=()=>toggleSkin(i);list.appendChild(d);});}
+function toggleSkin(i){skinDone[i]=!skinDone[i];document.getElementById('sk'+i).classList.toggle('done',skinDone[i]);updateScore();}
+
+// ── STUDY ─────────────────────────────────────────────────
+function updateStudyBar(){const h=parseFloat(document.getElementById('study-hrs').value)||0;const g=parseFloat(document.getElementById('study-goal').value)||4;document.getElementById('s-fill').style.width=Math.min(100,Math.round(h/g*100))+'%';document.getElementById('s-lbl').textContent=h.toFixed(1)+' / '+g+'h';updateScore();}
+
+// ── ROUNDELS ─────────────────────────────────────────────
+function setRoundel(id,pct){const circ=188.5;const el=document.getElementById('rdl-'+id);if(el)el.setAttribute('stroke-dashoffset',circ*(1-Math.min(1,Math.max(0,pct))));}
+function setExpRoundel(id,pct){const circ=131.9;const el=document.getElementById('erd-'+id);if(el)el.setAttribute('stroke-dashoffset',circ*(1-Math.min(1,Math.max(0,pct))));}
+function updateRoundels(){
+  const wp=waterCount/20;setRoundel('water',wp);
+  document.getElementById('rv-water').textContent=(waterCount*0.25).toFixed(1);
+  document.getElementById('rp-water').textContent=Math.round(wp*100)+'%';
+  const sh=parseFloat(document.getElementById('study-hrs').value)||0;const sg=parseFloat(document.getElementById('study-goal').value)||4;
+  setRoundel('study',sh/sg);document.getElementById('rv-study').textContent=sh.toFixed(1);
+  document.getElementById('rp-study').textContent=Math.round(Math.min(1,sh/sg)*100)+'%';
+  const sk=Object.keys(skinDone).filter(k=>skinDone[k]).length;
+  setRoundel('skin',sk/SKIN_STEPS.length);document.getElementById('rv-skin').textContent=sk;
+  document.getElementById('rp-skin').textContent=Math.round(sk/SKIN_STEPS.length*100)+'%';
+  const km=parseFloat(document.getElementById('km').value)||routeKm||0;
+  setRoundel('km',Math.min(1,km/100));document.getElementById('rv-km').textContent=km.toFixed(1);
+  document.getElementById('rp-km').textContent=km.toFixed(1)+'km';
+  updateExpRoundels();
+}
+function updateExpRoundels(){
+  const types=['card','cash','emi','loan'];
+  const totals=types.map(t=>(expData[t]||[]).reduce((s,e)=>s+e.amt,0));
+  const grand=totals.reduce((s,v)=>s+v,0)||1;
+  const colors=['#7F77DD','#1D9E75','#BA7517','#E24B4A'];
+  types.forEach((t,i)=>{
+    const v=totals[i];setExpRoundel(t,v/grand);
+    const el=document.getElementById('erv-'+t);if(el)el.textContent=v>999?'\u20b9'+(v/1000).toFixed(1)+'k':'\u20b9'+Math.round(v);
+  });
+}
+
+// ── SCORE ─────────────────────────────────────────────────
+function calcScore(d){let p=0;p+=Math.min(20,Math.round((d.water?.glasses||0)/20*20));p+=Math.round((d.skincare?.done?.length||0)/SKIN_STEPS.length*20);const h=parseFloat(d.study?.hours)||0,g=parseFloat(d.study?.goal)||4;p+=Math.min(20,Math.round(h/g*20));if(parseFloat(d.fuel?.km)>0)p+=20;if((d.finance?.transactions?.length||0)>0)p+=20;return Math.round(p);}
+function updateScore(){updateRoundels();const pct=calcScore({water:{glasses:waterCount},skincare:{done:Object.keys(skinDone).filter(k=>skinDone[k]).map(k=>SKIN_STEPS[k])},study:{hours:document.getElementById('study-hrs').value,goal:document.getElementById('study-goal').value},fuel:{km:document.getElementById('km').value||routeKm},finance:{transactions}});const badge=document.getElementById('score-badge');badge.textContent='Score: '+pct+'%';badge.className='score-badge '+(pct>=70?'score-high':pct>=40?'score-mid':'score-low');}
+
+// ── SECTION TOGGLE ────────────────────────────────────────
+function toggle(id){const bd=document.getElementById('bd-'+id);const ch=document.getElementById('ch-'+id);const open=bd.style.display!=='none';bd.style.display=open?'none':'block';if(ch)ch.classList.toggle('open',!open);}
+
+// ── TRANSACTIONS ─────────────────────────────────────────
+function openModal(){document.getElementById('modal').classList.add('open');}
+function closeModal(){document.getElementById('modal').classList.remove('open');document.getElementById('txn-amt').value='';document.getElementById('txn-desc').value='';}
+function addTxn(){const type=document.getElementById('txn-type').value;const desc=document.getElementById('txn-desc').value.trim()||type;const amt=parseFloat(document.getElementById('txn-amt').value)||0;if(amt<=0)return;transactions.push({type,desc,amt});renderTxns();closeModal();updateScore();}
+function delTxn(i){transactions.splice(i,1);renderTxns();updateScore();}
+function renderTxns(){const list=document.getElementById('txn-list');list.innerHTML='';let inc=0,exp=0,sav=0;transactions.forEach((t,i)=>{if(t.type==='income')inc+=t.amt;else if(t.type==='expense')exp+=t.amt;else sav+=t.amt;const row=document.createElement('div');row.className='txn-row';row.innerHTML=`<div class="dot ${t.type}"></div><span class="txn-desc">${t.desc}</span><span class="txn-amt ${t.type}">\u20b9${Math.round(t.amt).toLocaleString('en-IN')}</span><button class="del-btn" onclick="delTxn(${i})">\u2715</button>`;list.appendChild(row);});const net=inc-exp-sav;document.getElementById('f-inc').textContent='\u20b9'+Math.round(inc).toLocaleString('en-IN');document.getElementById('f-exp').textContent='\u20b9'+Math.round(exp).toLocaleString('en-IN');document.getElementById('f-sav').textContent='\u20b9'+Math.round(sav).toLocaleString('en-IN');const nEl=document.getElementById('f-net');nEl.textContent='\u20b9'+Math.round(Math.abs(net)).toLocaleString('en-IN')+(net>=0?' \u2191':' \u2193');nEl.style.color=net>=0?'var(--green-mid)':'var(--red-mid)';}
+
+// ── EXPENSES ─────────────────────────────────────────────
+function switchExp(type,btn){document.querySelectorAll('.exp-tab').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.exp-panel').forEach(p=>p.classList.remove('active'));btn.classList.add('active');document.getElementById('ep-'+type).classList.add('active');}
+function addExpEntry(type){const desc=document.getElementById(type+'-desc').value.trim();const amt=parseFloat(document.getElementById(type+'-amt').value)||0;if(!desc&&amt<=0)return;const entry={desc:desc||type,amt};if(type==='emi'){entry.months=parseInt(document.getElementById('emi-months').value)||0;const lc=document.getElementById('emi-card-link');entry.linkedCard=lc?lc.value:'';}if(type==='card'){const cw=document.getElementById('card-which');entry.cardName=cw?cw.value:'';}if(type==='loan')entry.outstanding=parseFloat(document.getElementById('loan-outstanding').value)||0;expData[type].push(entry);document.getElementById(type+'-desc').value='';document.getElementById(type+'-amt').value='';if(type==='emi'){document.getElementById('emi-months').value='';const lc=document.getElementById('emi-card-link');if(lc)lc.value='';}if(type==='loan')document.getElementById('loan-outstanding').value='';renderExpPanel(type);renderCards();updateExpRoundels();}
+function delExp(type,i){expData[type].splice(i,1);renderExpPanel(type);updateExpRoundels();}
+function renderExpPanel(type){const el=document.getElementById(type+'-entries');if(!el)return;el.innerHTML='';const items=expData[type]||[];const total=items.reduce((s,e)=>s+e.amt,0);const totalEl=document.getElementById(type+'-total');if(totalEl)totalEl.textContent='\u20b9'+Math.round(total).toLocaleString('en-IN');const cntEl=document.getElementById(type+'-count');if(cntEl)cntEl.textContent=items.length;items.forEach((e,i)=>{const extra=type==='emi'&&e.months?` \u00b7 ${e.months}mo left`:(type==='loan'&&e.outstanding?` \u00b7 Outstd: \u20b9${Math.round(e.outstanding).toLocaleString('en-IN')}`:'');const row=document.createElement('div');row.className='exp-entry';row.innerHTML=`<span class="exp-tag ${type}">${type}</span><span class="exp-desc">${e.desc}${extra}</span><span class="exp-amount">\u20b9${Math.round(e.amt).toLocaleString('en-IN')}</span><button class="del-btn" onclick="delExp('${type}',${i})">\u2715</button>`;el.appendChild(row);});}
+function renderAllExp(){['card','cash','emi','loan'].forEach(t=>renderExpPanel(t));}
+
+// ── ROUTE ─────────────────────────────────────────────────
+function setMode(el,mode){document.querySelectorAll('.mode-pill').forEach(b=>b.classList.remove('active'));el.classList.add('active');routeMode=mode;}
+function toggleLive(){liveTracking=!liveTracking;const btn=document.getElementById('live-btn');if(liveTracking){btn.className='live-btn on';btn.innerHTML='<span class="pdot"></span> Stop tracking';}else{btn.className='live-btn off';btn.innerHTML='<span class="pdot"></span> Start tracking';}}
+
+function addRouteStop(){const inp=document.getElementById('route-inp');const name=inp.value.trim();if(!name)return;routeStops.push({name,km:0,time:new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})});inp.value='';renderRouteStops();updateRouteStats();}
+function delRouteStop(i){routeStops.splice(i,1);renderRouteStops();updateRouteStats();}
+function renderRouteStops(){const list=document.getElementById('route-stop-list');if(!list)return;list.innerHTML='';if(!routeStops.length){list.innerHTML='<div style="font-size:12px;color:var(--text3);padding:6px 0">No stops added yet. Add your start point first.</div>';document.getElementById('route-stops-val').textContent=0;return;}routeStops.forEach((s,i)=>{const badge=i===0?'start':i===routeStops.length-1&&routeStops.length>1?'end':'mid';const item=document.createElement('div');item.className='stop-item';item.innerHTML=`<div class="stop-badge ${badge}">${LETTERS[i]||'\u2022'}</div><div class="stop-info"><div class="stop-name">${s.name}</div><div class="stop-sub">${s.time||''}</div></div><span class="stop-km">${s.km>0?s.km+' km':'\u2014'}</span><button class="del-btn" onclick="delRouteStop(${i})">\u2715</button>`;list.appendChild(item);});document.getElementById('route-stops-val').textContent=routeStops.length;}
+function updateRouteStats(){const km=routeKm||parseFloat(document.getElementById('km')?.value)||0;const el=document.getElementById('route-km-val');if(el)el.textContent=km.toFixed(1);const totEl=document.getElementById('route-total-km');if(totEl)totEl.textContent=km.toFixed(1)+' km';const timeEl=document.getElementById('route-time-val');if(timeEl)timeEl.textContent=routeMode==='walking'?Math.round(km*12):routeMode==='two-wheeler'?Math.round(km*3):Math.round(km*2.5);updateRoundels();}
+function syncRouteToFuel(){const kmEl=document.getElementById('km');if(kmEl&&routeKm>0){kmEl.value=routeKm;updateScore();}const note=document.getElementById('synced-note');if(note){note.style.display='block';setTimeout(()=>note.style.display='none',2500);}}
+
+// ── GOOGLE MAPS INIT (fires when API loads) ───────────────
+// Replace YOUR_GOOGLE_MAPS_KEY in the script tag below
+let gmap=null,directionsService=null,directionsRenderer=null;
+function initGoogleMap(){
+  const el=document.getElementById('gmap');const ph=document.getElementById('map-ph');
+  gmap=new google.maps.Map(el,{center:{lat:13.0827,lng:80.2707},zoom:12,disableDefaultUI:true,zoomControl:true});
+  directionsService=new google.maps.DirectionsService();
+  directionsRenderer=new google.maps.DirectionsRenderer({map:gmap,suppressMarkers:false});
+  if(ph)ph.style.display='none';
+}
+function calcGoogleRoute(){
+  if(!directionsService||routeStops.length<2)return;
+  const waypoints=routeStops.slice(1,-1).map(s=>({location:s.name,stopover:true}));
+  directionsService.route({origin:routeStops[0].name,destination:routeStops[routeStops.length-1].name,waypoints,travelMode:routeMode==='two-wheeler'?'DRIVING':routeMode.toUpperCase()},function(result,status){
+    if(status==='OK'){
+      directionsRenderer.setDirections(result);
+      let totalM=0;result.routes[0].legs.forEach((leg,i)=>{totalM+=leg.distance.value;if(routeStops[i+1])routeStops[i+1].km=+(leg.distance.value/1000).toFixed(1);});
+      routeKm=+(totalM/1000).toFixed(1);renderRouteStops();updateRouteStats();
+    }
+  });
+}
+
+// ── VIEWS ─────────────────────────────────────────────────
+function showView(v){document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach(el=>el.classList.remove('active'));document.getElementById('view-'+v).classList.add('active');document.getElementById('tab-'+v).classList.add('active');if(v==='history')renderHistoryList();if(v==='route')loadRouteHistory();}
+
+async function loadRouteHistory(){const el=document.getElementById('route-history-list');const strip=document.getElementById('route-week-strip');try{const days=await sbGetAll();const tracked=days.filter(d=>d.route_km>0||d.km_driven>0).slice(0,7);if(!tracked.length){el.innerHTML='<div style="font-size:12px;color:var(--text3)">No route data saved yet.</div>';return;}el.innerHTML='';tracked.forEach(row=>{const km=row.route_km||row.km_driven||0;const stops=(row.route_stops||[]);const label=stops.length>=2?stops[0].name+' \u2192 '+stops[stops.length-1].name:row.date_label||row.iso_date;const div=document.createElement('div');div.className='hist-row';div.innerHTML=`<span class="hist-date">${(row.date_label||row.iso_date).split(',')[0]}</span><span class="hist-route-name">${label}</span><span class="hist-km">${km} km</span>`;el.appendChild(div);});const totKm=tracked.reduce((s,d)=>s+(d.route_km||d.km_driven||0),0);const n=tracked.length;if(strip){strip.style.display='flex';document.getElementById('rws-km').textContent=totKm.toFixed(1);document.getElementById('rws-avg').textContent=(totKm/n).toFixed(1);document.getElementById('rws-days').textContent=n;}}catch(e){el.innerHTML='<div style="font-size:12px;color:var(--text3)">Offline \u2014 route history unavailable.</div>';}}
+
+// ── HISTORY ───────────────────────────────────────────────
+function rupee(n){return '\u20b9'+(Math.round(n)||0).toLocaleString('en-IN');}
+function scorePill(pct){const cls=pct>=70?'score-high':pct>=40?'score-mid':'score-low';return `<span class="score-pill ${cls}">${pct}%</span>`;}
+function switchReview(tab){document.getElementById('review-list').style.display=tab==='list'?'block':'none';document.getElementById('review-week').style.display=tab==='week'?'block':'none';document.getElementById('review-detail').style.display='none';document.getElementById('rtab-list').className='nav-btn'+(tab==='list'?' active':'');document.getElementById('rtab-week').className='nav-btn'+(tab==='week'?' active':'');if(tab==='week')renderWeekSummary();else renderHistoryList();}
+
+async function renderHistoryList(){document.getElementById('review-detail').style.display='none';document.getElementById('review-list').style.display='block';const el=document.getElementById('review-list');el.innerHTML='<div class="loading">Loading history\u2026</div>';syncStatus('syncing','Loading history\u2026');let days=[];try{days=await sbGetAll();syncStatus('ok',days.length+' days in Supabase');}catch(e){syncStatus('err','Offline \u2014 showing local cache');for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('dt_'))try{days.push(JSON.parse(localStorage.getItem(k)));}catch(_){}}days.sort((a,b)=>(b.iso_date||'').localeCompare(a.iso_date||''));}
+if(!days.length){el.innerHTML=`<div class="empty"><span class="empty-icon">\uD83D\uDCC5</span>No saved days yet.<br>Fill in the tracker and tap Save.</div>`;return;}
+el.innerHTML='';days.forEach(row=>{const score=row.score||calcScore({water:{glasses:row.water_glasses},skincare:{done:row.skin_done||[]},study:{hours:row.study_hours,goal:row.study_goal||4},fuel:{km:row.km_driven},finance:{transactions:row.transactions||[]}});const card=document.createElement('div');card.className='day-card';card.innerHTML=`<div class="dc-head"><span class="dc-title">${row.date_label||row.iso_date}</span>${scorePill(score)}</div><div class="dc-body"><div class="dc-stats"><div class="dc-stat"><div class="sl">\uD83D\uDCA7 Water</div><div class="sv">${((row.water_glasses||0)*0.25).toFixed(2)}L</div></div><div class="dc-stat"><div class="sl">\uD83D\uDCDA Study</div><div class="sv">${row.study_hours||0}h</div></div><div class="dc-stat"><div class="sl">\u26FD Distance</div><div class="sv">${row.km_driven||row.route_km||'\u2014'} ${(row.km_driven||row.route_km)?row.km_unit||'km':''}</div></div><div class="dc-stat"><div class="sl">\u2728 Skincare</div><div class="sv">${(row.skin_done||[]).length}/${SKIN_STEPS.length}</div></div></div><div class="txn-mini"><span><span class="dot income"></span> ${rupee(row.income)}</span><span><span class="dot expense"></span> ${rupee(row.expense)}</span><span><span class="dot savings"></span> ${rupee(row.savings)}</span></div></div>`;card.onclick=()=>showDetail(row);el.appendChild(card);});}
+
+function showDetail(row){document.getElementById('review-list').style.display='none';const det=document.getElementById('review-detail');det.style.display='block';const score=row.score||0;const net=(row.income||0)-(row.expense||0)-(row.savings||0);const skDone=new Set(row.skin_done||[]);const skinHTML=SKIN_STEPS.map(s=>`<span class="stag ${skDone.has(s)?'done':'miss'}">${skDone.has(s)?'\u2713 ':'\u2715 '}${s}</span>`).join('');const txnHTML=(row.transactions||[]).map(t=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:0.5px solid var(--border);font-size:12px"><span style="display:flex;align-items:center;gap:6px"><span class="dot ${t.type}"></span><span style="color:var(--text)">${t.desc}</span></span><span style="font-weight:600;color:var(--${t.type==='income'?'green-mid':t.type==='expense'?'red-mid':'blue-mid'})">${rupee(t.amt)}</span></div>`).join('')||'<div style="font-size:12px;color:var(--text3)">No transactions</div>';
+det.innerHTML=`<button class="back-btn" onclick="renderHistoryList()">\u2190 Back to history</button><div class="detail-title"><span style="font-size:15px;font-weight:600">${row.date_label||row.iso_date}</span>${scorePill(score)}</div><div class="sec-divider">Water &amp; study</div><div class="sum-grid"><div class="sum-card"><div class="scl">\uD83D\uDCA7 Water</div><div class="scv">${((row.water_glasses||0)*0.25).toFixed(2)}L</div><div class="scs">${row.water_glasses||0} / 20 glasses</div></div><div class="sum-card"><div class="scl">\uD83D\uDCDA Study</div><div class="scv">${row.study_hours||0}h</div><div class="scs">${row.study_subject||'\u2014'}</div></div></div>${row.study_notes?`<div class="note-box">${row.study_notes}</div>`:''}<div class="sec-divider">Fuel &amp; km</div><div class="sum-grid"><div class="sum-card"><div class="scl">\u26FD Fuel</div><div class="scv" style="font-size:14px">${row.fuel_amt?row.fuel_amt+' '+row.fuel_unit:'\u2014'}</div><div class="scs">${row.fuel_cost?'\u20b9'+row.fuel_cost:''}</div></div><div class="sum-card"><div class="scl">\uD83D\uDDFA Distance</div><div class="scv" style="font-size:14px">${row.km_driven||row.route_km?((row.km_driven||row.route_km)+' '+(row.km_unit||'km')):'\u2014'}</div><div class="scs">${row.odometer?'Odo: '+row.odometer+' km':''}</div></div></div><div class="sec-divider">Skincare</div><div class="skin-tags">${skinHTML}</div><div class="sec-divider">Finances</div><div class="sum-grid"><div class="sum-card"><div class="scl">Income</div><div class="scv" style="color:var(--green-mid)">${rupee(row.income)}</div></div><div class="sum-card"><div class="scl">Spent</div><div class="scv" style="color:var(--red-mid)">${rupee(row.expense)}</div></div><div class="sum-card"><div class="scl">Saved</div><div class="scv" style="color:var(--blue-mid)">${rupee(row.savings)}</div></div><div class="sum-card"><div class="scl">Balance</div><div class="scv" style="color:var(--${net>=0?'green-mid':'red-mid'})">${rupee(Math.abs(net))} ${net>=0?'\u2191':'\u2193'}</div></div></div><div style="margin-top:4px">${txnHTML}</div><div style="margin-top:14px"><button class="save-btn" style="background:var(--bg2);color:var(--text);border:0.5px solid var(--border2)" onclick="jumpToDate('${row.iso_date}')">\u270E Edit this day</button></div>`;}
+
+function jumpToDate(iso){document.getElementById('date-picker').value=iso;showView('tracker');loadDay();}
+
+async function renderWeekSummary(){document.getElementById('review-detail').style.display='none';const el=document.getElementById('review-week');el.innerHTML='<div class="loading">Loading summary\u2026</div>';let days=[];try{days=await sbGetAll();}catch(e){days=[];}days=days.slice(0,7);if(!days.length){el.innerHTML=`<div class="empty"><span class="empty-icon">\uD83D\uDCC8</span>No data yet.</div>`;return;}const n=days.length;const avgW=(days.reduce((s,d)=>s+(d.water_glasses||0),0)/n*0.25).toFixed(2);const avgS=(days.reduce((s,d)=>s+(parseFloat(d.study_hours)||0),0)/n).toFixed(1);const totKm=days.reduce((s,d)=>s+(parseFloat(d.km_driven||d.route_km)||0),0).toFixed(1);const totInc=days.reduce((s,d)=>s+(d.income||0),0);const totSav=days.reduce((s,d)=>s+(d.savings||0),0);const avgScore=Math.round(days.reduce((s,d)=>s+(d.score||0),0)/n);
+let html=`<div style="font-size:12px;color:var(--text3);margin-bottom:11px">Last ${n} saved day${n>1?'s':''}</div><div class="sum-grid" style="margin-bottom:13px"><div class="sum-card"><div class="scl">\u2b50 Avg score</div><div class="scv">${avgScore}%</div></div><div class="sum-card"><div class="scl">\uD83D\uDCA7 Avg water</div><div class="scv">${avgW}L</div></div><div class="sum-card"><div class="scl">\uD83D\uDCDA Avg study</div><div class="scv">${avgS}h</div></div><div class="sum-card"><div class="scl">\u26FD Total km</div><div class="scv">${totKm}</div></div><div class="sum-card"><div class="scl">Income</div><div class="scv" style="color:var(--green-mid);font-size:14px">${rupee(totInc)}</div></div><div class="sum-card"><div class="scl">Saved</div><div class="scv" style="color:var(--blue-mid);font-size:14px">${rupee(totSav)}</div></div></div><div class="sec-divider">Day scores</div>`;
+days.forEach(row=>{const s=row.score||0;const cls=s>=70?'bh':s>=40?'bm':'bl';html+=`<div class="bar-row"><span class="bar-date">${(row.date_label||row.iso_date).split(',')[0]}</span><div class="bar-track"><div class="bar-fill ${cls}" style="width:${s}%"><span class="bp">${s}%</span></div></div></div>`;});
+el.innerHTML=html;}
+
+
+// ── CARD MANAGEMENT ──────────────────────────────────────
+const CARD_GRADIENTS={
+  purple:'linear-gradient(135deg,#7F77DD 0%,#3C3489 100%)',
+  blue:'linear-gradient(135deg,#378ADD 0%,#0C447C 100%)',
+  green:'linear-gradient(135deg,#639922 0%,#27500A 100%)',
+  amber:'linear-gradient(135deg,#BA7517 0%,#633806 100%)',
+  red:'linear-gradient(135deg,#E24B4A 0%,#791F1F 100%)',
+  teal:'linear-gradient(135deg,#1D9E75 0%,#085041 100%)'
+};
+const CARD_STROKE={purple:'#7F77DD',blue:'#378ADD',green:'#639922',amber:'#BA7517',red:'#E24B4A',teal:'#1D9E75'};
+
+function openCardModal(){document.getElementById('card-modal').classList.add('open');document.getElementById('cmod-name').value='';document.getElementById('cmod-last4').value='';document.getElementById('cmod-limit').value='';document.getElementById('cmod-network').value='Visa';selectedCardColor='purple';document.querySelectorAll('.color-swatch').forEach(s=>{s.style.border=s.dataset.color==='purple'?'2.5px solid var(--text)':'2px solid transparent';});}
+function closeCardModal(){document.getElementById('card-modal').classList.remove('open');}
+function pickColor(el,color){selectedCardColor=color;document.querySelectorAll('.color-swatch').forEach(s=>s.style.border='2px solid transparent');el.style.border='2.5px solid var(--text)';}
+
+function saveCard(){
+  const name=document.getElementById('cmod-name').value.trim();if(!name)return;
+  const last4=document.getElementById('cmod-last4').value.trim();
+  const network=document.getElementById('cmod-network').value;
+  const limit=parseFloat(document.getElementById('cmod-limit').value)||0;
+  myCards.push({id:Date.now(),name,last4,network,limit,color:selectedCardColor});
+  closeCardModal();renderCards();refreshCardDropdowns();
+}
+
+function delCard(id){if(!confirm('Remove this card?'))return;myCards=myCards.filter(c=>c.id!==id);renderCards();refreshCardDropdowns();}
+
+function getCardSpent(cardName){
+  const cardSpend=expData.card.filter(e=>e.cardName===cardName).reduce((s,e)=>s+e.amt,0);
+  const emiSpend=expData.emi.filter(e=>e.linkedCard===cardName).reduce((s,e)=>s+e.amt,0);
+  return cardSpend+emiSpend;
+}
+
+function renderCards(){
+  const wrap=document.getElementById('card-list-wrap');
+  const rdlRow=document.getElementById('card-rdl-row');
+  if(!wrap)return;
+  if(!myCards.length){
+    wrap.innerHTML='<div style="font-size:12px;color:var(--text3);padding:6px 0">No cards added yet. Tap + Add card.</div>';
+    if(rdlRow)rdlRow.innerHTML='<div style="font-size:12px;color:var(--text3);padding:10px 4px;display:flex;align-items:center">Add cards below to see utilisation roundels</div>';
+    return;
+  }
+  // render tiles
+  wrap.innerHTML='';
+  myCards.forEach(card=>{
+    const spent=getCardSpent(card.name);
+    const limit=card.limit||0;
+    const pct=limit>0?Math.min(100,Math.round(spent/limit*100)):0;
+    const avail=Math.max(0,limit-spent);
+    const fillClass=pct<50?'low':pct<80?'mid':'high';
+    const grad=CARD_GRADIENTS[card.color]||CARD_GRADIENTS.purple;
+    const last4str=card.last4?'•••• •••• •••• '+card.last4:'';
+    const tile=document.createElement('div');tile.className='card-tile';
+    tile.innerHTML=`<div class="card-tile-top" style="background:${grad};border-radius:var(--radius-lg) var(--radius-lg) 0 0">
+      <button class="del-card-btn" onclick="delCard(${card.id})" style="color:rgba(255,255,255,0.7)">✕</button>
+      <div class="card-chip"></div>
+      <div class="card-name-row"><span class="card-name" style="color:#fff">${card.name}</span><span class="card-network" style="background:rgba(255,255,255,0.25);color:#fff">${card.network}</span></div>
+      ${last4str?`<div class="card-number" style="color:rgba(255,255,255,0.8)">${last4str}</div>`:''}
+    </div>
+    <div class="card-tile-body">
+      <div class="card-util-bar"><div class="card-util-fill ${fillClass}" style="width:${pct}%"></div></div>
+      <div class="card-stats">
+        <div class="card-stat"><div class="csv">${limit>0?'₹'+fmt(spent):'—'}</div><div class="csl">Used</div></div>
+        <div class="card-stat"><div class="csv" style="color:var(--green-mid)">${limit>0?'₹'+fmt(avail):'—'}</div><div class="csl">Available</div></div>
+        <div class="card-stat"><div class="csv">${limit>0?pct+'%':'—'}</div><div class="csl">Utilised</div></div>
+      </div>
+      ${limit>0?`<div style="font-size:10px;color:var(--text3);text-align:center;margin-top:6px">Limit: ₹${fmt(limit)}</div>`:''}
+    </div>`;
+    wrap.appendChild(tile);
+  });
+  // render roundels row
+  if(!rdlRow)return;
+  rdlRow.innerHTML='';
+  const CIRC=213.6; // 2*pi*34
+  myCards.forEach(card=>{
+    const spent=getCardSpent(card.name);
+    const limit=card.limit||0;
+    const pct=limit>0?Math.min(1,spent/limit):0;
+    const stroke=CARD_STROKE[card.color]||'#7F77DD';
+    const offset=CIRC*(1-pct);
+    const rdl=document.createElement('div');rdl.className='card-rdl';
+    const utilClass=pct<0.5?'green-bg,green':pct<0.8?'amber-bg,amber':'red-bg,red';
+    const [bg,col]=utilClass.split(',');
+    rdl.innerHTML=`<div class="card-rdl-wrap">
+      <svg width="68" height="68" viewBox="0 0 68 68">
+        <circle cx="34" cy="34" r="28" fill="none" stroke="var(--bg3)" stroke-width="7"/>
+        <circle cx="34" cy="34" r="28" fill="none" stroke="${stroke}" stroke-width="7" stroke-dasharray="${CIRC}" stroke-dashoffset="${offset}" stroke-linecap="round"/>
+      </svg>
+      <div class="card-rdl-center">
+        <span class="card-rdl-val">${limit>0?Math.round(pct*100)+'%':'—'}</span>
+        <span class="card-rdl-sub">${limit>0?'used':''}</span>
+      </div>
+    </div>
+    <span class="card-rdl-name">${card.name}</span>
+    <span class="card-rdl-util" style="background:var(--${bg});color:var(--${col})">${limit>0?'₹'+fmt(Math.max(0,limit-spent))+' left':'no limit'}</span>`;
+    rdlRow.appendChild(rdl);
+  });
+}
+
+function fmt(n){if(n>=100000)return (n/100000).toFixed(1)+'L';if(n>=1000)return (n/1000).toFixed(1)+'k';return Math.round(n).toString();}
+
+function refreshCardDropdowns(){
+  const dropdowns=['card-which','emi-card-link'];
+  dropdowns.forEach(id=>{
+    const sel=document.getElementById(id);if(!sel)return;
+    const prev=sel.value;
+    sel.innerHTML=id==='card-which'?'<option value="">— select card —</option>':'<option value="">None / cash</option>';
+    myCards.forEach(c=>{const opt=document.createElement('option');opt.value=c.name;opt.textContent=c.name+(c.last4?' (••'+c.last4+')':'');sel.appendChild(opt);});
+    if(prev)sel.value=prev;
+  });
+}
+
+window.addEventListener('click',e=>{if(e.target===document.getElementById('modal'))closeModal();if(e.target===document.getElementById('card-modal'))closeCardModal();});
+init();
+</script>
+
+<!-- Replace YOUR_GOOGLE_MAPS_KEY below with your actual key to enable live map and route calculation -->
+<!-- <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_KEY&callback=initGoogleMap" async defer></script> -->
+
+<!-- ADD CARD MODAL -->
+<div class="modal-wrap" id="card-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h4>Add a card</h4>
+    <div class="modal-row"><input type="text" id="cmod-name" placeholder="Card name (e.g. HDFC Regalia, SBI SimplyCLICK)" style="width:100%"></div>
+    <div class="modal-row"><input type="text" id="cmod-last4" placeholder="Last 4 digits (optional)" maxlength="4" style="width:100%;font-family:monospace;letter-spacing:0.12em"></div>
+    <div class="modal-row">
+      <select id="cmod-network" style="width:100%">
+        <option value="Visa">Visa</option>
+        <option value="Mastercard">Mastercard</option>
+        <option value="RuPay">RuPay</option>
+        <option value="Amex">Amex</option>
+        <option value="Diners">Diners</option>
+      </select>
+    </div>
+    <div class="modal-row"><input type="number" id="cmod-limit" placeholder="Credit limit (&#8377;)" min="0" step="1000" style="width:100%"></div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:10px">Card colour</div>
+    <div style="display:flex;gap:8px;margin-bottom:14px" id="color-swatches">
+      <div class="color-swatch active" data-color="purple" style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#7F77DD,#3C3489);cursor:pointer;border:2px solid transparent" onclick="pickColor(this,'purple')"></div>
+      <div class="color-swatch" data-color="blue" style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#378ADD,#0C447C);cursor:pointer;border:2px solid transparent" onclick="pickColor(this,'blue')"></div>
+      <div class="color-swatch" data-color="green" style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#639922,#27500A);cursor:pointer;border:2px solid transparent" onclick="pickColor(this,'green')"></div>
+      <div class="color-swatch" data-color="amber" style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#BA7517,#633806);cursor:pointer;border:2px solid transparent" onclick="pickColor(this,'amber')"></div>
+      <div class="color-swatch" data-color="red" style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#E24B4A,#791F1F);cursor:pointer;border:2px solid transparent" onclick="pickColor(this,'red')"></div>
+      <div class="color-swatch" data-color="teal" style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#1D9E75,#085041);cursor:pointer;border:2px solid transparent" onclick="pickColor(this,'teal')"></div>
+    </div>
+    <div class="modal-btns">
+      <button class="mbtn" onclick="closeCardModal()">Cancel</button>
+      <button class="mbtn primary" onclick="saveCard()">Add card</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
