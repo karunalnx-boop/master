@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Daily Tracker</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#ffffff;--bg2:#f5f5f3;--bg3:#efefec;
+    --text:#1a1a1a;--text2:#6b6b6b;--text3:#aaa;
+    --border:rgba(0,0,0,0.12);--border2:rgba(0,0,0,0.22);
+    --green:#27500A;--green-bg:#EAF3DE;--green-border:#C0DD97;
+    --red:#791F1F;--red-bg:#FCEBEB;--red-border:#F7C1C1;
+    --blue:#0C447C;--blue-bg:#E6F1FB;--blue-border:#B5D4F4;
+    --amber:#633806;--amber-bg:#FAEEDA;--amber-border:#FAC775;
+    --radius:8px;--radius-lg:12px;
+  }
+  @media(prefers-color-scheme:dark){
+    :root{
+      --bg:#1e1e1e;--bg2:#2a2a2a;--bg3:#242424;
+      --text:#f0f0f0;--text2:#aaa;--text3:#666;
+      --border:rgba(255,255,255,0.1);--border2:rgba(255,255,255,0.2);
+      --green:#C0DD97;--green-bg:#173404;--green-border:#3B6D11;
+      --red:#F09595;--red-bg:#501313;--red-border:#A32D2D;
+      --blue:#85B7EB;--blue-bg:#042C53;--blue-border:#185FA5;
+      --amber:#FAC775;--amber-bg:#412402;--amber-border:#854F0B;
+    }
+  }
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg3);color:var(--text);min-height:100vh;padding-bottom:40px}
+  .app{max-width:420px;margin:0 auto;padding:12px}
+
+  .header{background:var(--bg);border-radius:var(--radius-lg);border:0.5px solid var(--border);padding:12px 14px;margin-bottom:12px}
+  .header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+  .app-title{font-size:16px;font-weight:600;color:var(--text)}
+  .score-badge{font-size:12px;padding:4px 10px;border-radius:20px;font-weight:500}
+  .score-high{background:var(--green-bg);color:var(--green)}
+  .score-mid{background:var(--amber-bg);color:var(--amber)}
+  .score-low{background:var(--red-bg);color:var(--red)}
+  .date-row{display:flex;align-items:center;gap:8px}
+  .date-row input[type=date]{flex:1;padding:6px 10px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg2);color:var(--text);font-size:13px;font-family:inherit}
+  .date-nav{display:flex;gap:4px}
+  .date-nav button{padding:6px 10px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--bg2);color:var(--text2);font-size:13px;cursor:pointer}
+
+  /* Sync status bar */
+  .sync-bar{display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:var(--radius);font-size:12px;margin-bottom:12px;background:var(--bg2);border:0.5px solid var(--border)}
+  .sync-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .sync-dot.ok{background:#639922}
+  .sync-dot.syncing{background:#D87C0A;animation:pulse 1s infinite}
+  .sync-dot.err{background:#E24B4A}
+  .sync-dot.idle{background:var(--text3)}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+  .sync-text{flex:1;color:var(--text2)}
+
+  .nav{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px}
+  .nav-btn{padding:8px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg2);color:var(--text2);font-size:13px;cursor:pointer;text-align:center;font-family:inherit}
+  .nav-btn.active{background:var(--text);color:var(--bg);border-color:var(--text)}
+
+  .view{display:none}.view.active{display:block}
+
+  .section{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);margin-bottom:10px;overflow:hidden}
+  .sec-head{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--bg2);border-bottom:0.5px solid var(--border);cursor:pointer;user-select:none}
+  .sec-head h3{font-size:14px;font-weight:500;color:var(--text);flex:1}
+  .sec-icon{font-size:18px;width:20px;text-align:center}
+  .chevron{font-size:12px;color:var(--text3);transition:transform 0.2s;display:inline-block}
+  .chevron.open{transform:rotate(180deg)}
+  .sec-body{padding:12px 14px}
+
+  .row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .row:last-child{margin-bottom:0}
+  .row label{font-size:13px;color:var(--text2);min-width:82px;flex-shrink:0}
+  input[type=number],input[type=text],select,input[type=date]{padding:7px 10px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);font-size:13px;font-family:inherit;width:100%}
+  input[type=number],input[type=text]{flex:1}
+  .unit-sel{width:80px;flex:none}
+  .inline-label{font-size:12px;color:var(--text3);flex-shrink:0}
+
+  .water-bar{height:6px;background:var(--bg2);border-radius:3px;overflow:hidden;margin-bottom:6px}
+  .water-fill{height:100%;background:#378ADD;border-radius:3px;transition:width 0.3s}
+  .water-label{font-size:11px;color:var(--text2);margin-bottom:8px}
+  .cups{display:flex;flex-wrap:wrap;gap:5px}
+  .cup{width:32px;height:32px;border-radius:var(--radius);border:0.5px solid var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;background:var(--bg2);transition:background 0.15s}
+  .cup.filled{background:var(--blue-bg);border-color:#378ADD}
+
+  .skin-list{display:flex;flex-direction:column;gap:5px}
+  .skin-item{display:flex;align-items:center;gap:10px;padding:7px 10px;border:0.5px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:background 0.15s}
+  .skin-item.done{background:var(--green-bg);border-color:var(--green-border)}
+  .chk{width:18px;height:18px;border-radius:4px;border:0.5px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;color:transparent}
+  .skin-item.done .chk{background:#639922;border-color:#639922;color:#fff}
+  .skin-lbl{font-size:13px;color:var(--text)}
+  .skin-item.done .skin-lbl{color:var(--green)}
+
+  .study-bar-wrap{margin-bottom:8px}
+  .study-bar{height:6px;background:var(--bg2);border-radius:3px;overflow:hidden;margin-bottom:4px}
+  .study-fill{height:100%;background:#7F77DD;border-radius:3px;transition:width 0.3s}
+  .study-lbl{font-size:11px;color:var(--text2)}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+  .two-col .fc{display:flex;flex-direction:column;gap:3px}
+  .two-col .fc label{font-size:12px;color:var(--text2);min-width:auto}
+  .two-col .fc input{width:100%}
+
+  .fin-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+  .fin-card{padding:9px 10px;border-radius:var(--radius);background:var(--bg2)}
+  .fin-card .fl{font-size:11px;color:var(--text2);margin-bottom:3px}
+  .fin-card .fv{font-size:17px;font-weight:500}
+  .fv.income{color:var(--green)}.fv.expense{color:var(--red)}.fv.savings{color:var(--blue)}
+  .txn-list{max-height:160px;overflow-y:auto;margin-bottom:8px}
+  .txn-row{display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:0.5px solid var(--border);font-size:12px}
+  .txn-row:last-child{border-bottom:none}
+  .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+  .dot.income{background:#639922}.dot.expense{background:#E24B4A}.dot.savings{background:#378ADD}
+  .txn-desc{flex:1;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .txn-amt{font-weight:500;flex-shrink:0}
+  .txn-amt.income{color:var(--green)}.txn-amt.expense{color:var(--red)}.txn-amt.savings{color:var(--blue)}
+  .del-btn{background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;padding:0;line-height:1}
+  .add-btn{width:100%;padding:7px;border:0.5px dashed var(--border2);border-radius:var(--radius);background:transparent;color:var(--text2);font-size:13px;cursor:pointer;font-family:inherit}
+  .add-btn:hover{background:var(--bg2)}
+
+  .save-wrap{padding:0 0 6px}
+  .save-btn{width:100%;padding:11px;background:var(--text);color:var(--bg);border:none;border-radius:var(--radius);font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px}
+  .save-btn:disabled{opacity:0.5;cursor:not-allowed}
+  .save-btn:active:not(:disabled){transform:scale(0.98)}
+  .toast{text-align:center;font-size:12px;margin-top:6px;height:16px}
+  .toast.ok{color:var(--green)}.toast.err{color:var(--red)}
+
+  .modal-wrap{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;align-items:center;justify-content:center;padding:20px}
+  .modal-wrap.open{display:flex}
+  .modal{background:var(--bg);border-radius:var(--radius-lg);padding:16px;width:100%;max-width:340px;border:0.5px solid var(--border)}
+  .modal h4{font-size:14px;font-weight:500;margin-bottom:12px;color:var(--text)}
+  .modal-row{margin-bottom:8px}
+  .modal-btns{display:flex;gap:8px;margin-top:12px}
+  .mbtn{flex:1;padding:8px;border-radius:var(--radius);border:0.5px solid var(--border2);cursor:pointer;font-size:13px;font-family:inherit;background:var(--bg2);color:var(--text)}
+  .mbtn.primary{background:var(--text);color:var(--bg);border-color:var(--text)}
+
+  /* History */
+  .day-card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);margin-bottom:10px;overflow:hidden;cursor:pointer}
+  .day-card:hover{border-color:var(--border2)}
+  .dc-head{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:var(--bg2)}
+  .dc-title{font-size:14px;font-weight:500;color:var(--text)}
+  .score-pill{font-size:11px;padding:3px 8px;border-radius:20px;font-weight:500}
+  .dc-body{padding:10px 14px}
+  .dc-stats{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}
+  .dc-stat{background:var(--bg2);border-radius:var(--radius);padding:6px 9px}
+  .dc-stat .sl{font-size:11px;color:var(--text2);margin-bottom:2px}
+  .dc-stat .sv{font-size:13px;font-weight:500;color:var(--text)}
+  .txn-mini{font-size:12px;color:var(--text2);display:flex;gap:10px;flex-wrap:wrap}
+  .back-btn{display:flex;align-items:center;gap:6px;padding:6px 0 12px;cursor:pointer;color:var(--text2);font-size:13px;border:none;background:none;font-family:inherit}
+  .detail-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .sec-divider{font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.04em;margin:12px 0 6px}
+  .sum-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px}
+  .sum-card{background:var(--bg2);border-radius:var(--radius);padding:9px 10px}
+  .sum-card .scl{font-size:11px;color:var(--text2);margin-bottom:3px}
+  .sum-card .scv{font-size:16px;font-weight:500;color:var(--text)}
+  .sum-card .scs{font-size:11px;color:var(--text3);margin-top:1px}
+  .skin-tags{display:flex;flex-wrap:wrap;gap:4px}
+  .stag{font-size:11px;padding:2px 7px;border-radius:20px}
+  .stag.done{background:var(--green-bg);color:var(--green);border:0.5px solid var(--green-border)}
+  .stag.miss{background:var(--red-bg);color:var(--red);border:0.5px solid var(--red-border)}
+  .note-box{background:var(--bg2);border-radius:var(--radius);padding:8px 10px;font-size:12px;color:var(--text2);font-style:italic;margin-top:6px}
+  .empty{text-align:center;padding:30px 16px;color:var(--text2);font-size:13px}
+  .empty-icon{font-size:28px;display:block;margin-bottom:8px;color:var(--text3)}
+  .loading{text-align:center;padding:24px;color:var(--text3);font-size:13px}
+
+  .bar-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+  .bar-date{font-size:11px;color:var(--text2);min-width:56px;flex-shrink:0}
+  .bar-track{flex:1;height:20px;background:var(--bg2);border-radius:4px;overflow:hidden}
+  .bar-fill{height:100%;border-radius:4px;display:flex;align-items:center;padding-left:7px;min-width:30px;transition:width 0.4s}
+  .bar-fill .bp{font-size:11px;font-weight:500}
+  .bar-fill.bh{background:var(--green-bg)}.bar-fill.bh .bp{color:var(--green)}
+  .bar-fill.bm{background:var(--amber-bg)}.bar-fill.bm .bp{color:var(--amber)}
+  .bar-fill.bl{background:var(--red-bg)}.bar-fill.bl .bp{color:var(--red)}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="header">
+    <div class="header-top">
+      <span class="app-title">&#128197; Daily Tracker</span>
+      <span class="score-badge score-low" id="score-badge">Score: 0%</span>
+    </div>
+    <div class="date-row">
+      <input type="date" id="date-picker" onchange="loadDay()">
+      <div class="date-nav">
+        <button onclick="changeDay(-1)">&#8592;</button>
+        <button onclick="goToday()">Today</button>
+        <button onclick="changeDay(1)">&#8594;</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sync-bar" id="sync-bar">
+    <div class="sync-dot idle" id="sync-dot"></div>
+    <span class="sync-text" id="sync-text">Ready</span>
+  </div>
+
+  <div class="nav">
+    <button class="nav-btn active" onclick="showView('tracker')" id="tab-tracker">&#128221; Tracker</button>
+    <button class="nav-btn" onclick="showView('history')" id="tab-history">&#128202; Review</button>
+  </div>
+
+  <!-- TRACKER VIEW -->
+  <div class="view active" id="view-tracker">
+
+    <!-- Fuel -->
+    <div class="section">
+      <div class="sec-head" onclick="toggle('fuel')">
+        <span class="sec-icon">&#9981;</span>
+        <h3>Fuel &amp; kilometres</h3>
+        <span class="chevron open" id="ch-fuel">&#8964;</span>
+      </div>
+      <div class="sec-body" id="bd-fuel">
+        <div class="row">
+          <label>Fuel added</label>
+          <input type="number" id="fuel-amt" min="0" step="0.1" placeholder="0" style="max-width:90px;flex:none">
+          <select id="fuel-unit" class="unit-sel">
+            <option value="L">Litres</option>
+            <option value="gal">Gallons</option>
+            <option value="ml">ml</option>
+          </select>
+        </div>
+        <div class="row">
+          <label>Cost</label>
+          <input type="number" id="fuel-cost" min="0" step="1" placeholder="0">
+          <span class="inline-label">&#8377;</span>
+        </div>
+        <div class="row">
+          <label>Km driven</label>
+          <input type="number" id="km" min="0" step="0.1" placeholder="0" oninput="updateScore()">
+          <select id="km-unit" class="unit-sel">
+            <option value="km">km</option>
+            <option value="mi">miles</option>
+          </select>
+        </div>
+        <div class="row">
+          <label>Odometer</label>
+          <input type="number" id="odometer" min="0" step="1" placeholder="Optional">
+          <select id="odo-unit" class="unit-sel">
+            <option value="km">km</option>
+            <option value="mi">miles</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Water -->
+    <div class="section">
+      <div class="sec-head" onclick="toggle('water')">
+        <span class="sec-icon">&#128167;</span>
+        <h3>Water &mdash; 5 litres</h3>
+        <span class="chevron open" id="ch-water">&#8964;</span>
+      </div>
+      <div class="sec-body" id="bd-water">
+        <div class="water-bar"><div class="water-fill" id="w-fill" style="width:0%"></div></div>
+        <div class="water-label" id="w-lbl">0 / 5L &mdash; tap a glass (250ml each)</div>
+        <div class="cups" id="cups"></div>
+      </div>
+    </div>
+
+    <!-- Skincare -->
+    <div class="section">
+      <div class="sec-head" onclick="toggle('skin')">
+        <span class="sec-icon">&#10024;</span>
+        <h3>Skincare routine</h3>
+        <span class="chevron open" id="ch-skin">&#8964;</span>
+      </div>
+      <div class="sec-body" id="bd-skin">
+        <div class="skin-list" id="skin-list"></div>
+      </div>
+    </div>
+
+    <!-- Study -->
+    <div class="section">
+      <div class="sec-head" onclick="toggle('study')">
+        <span class="sec-icon">&#128218;</span>
+        <h3>Study session</h3>
+        <span class="chevron open" id="ch-study">&#8964;</span>
+      </div>
+      <div class="sec-body" id="bd-study">
+        <div class="study-bar-wrap">
+          <div class="study-bar"><div class="study-fill" id="s-fill" style="width:0%"></div></div>
+          <div class="study-lbl" id="s-lbl">0 / 4h</div>
+        </div>
+        <div class="two-col">
+          <div class="fc"><label>Subject</label><input type="text" id="study-sub" placeholder="e.g. SQL, Maths"></div>
+          <div class="fc"><label>Hours studied</label><input type="number" id="study-hrs" min="0" step="0.25" placeholder="0" oninput="updateStudyBar()"></div>
+        </div>
+        <div class="row">
+          <label>Daily goal</label>
+          <input type="number" id="study-goal" min="0.5" max="16" step="0.5" value="4" style="max-width:70px;flex:none" oninput="updateStudyBar()">
+          <span class="inline-label">hours</span>
+        </div>
+        <div class="row">
+          <label>Notes</label>
+          <input type="text" id="study-notes" placeholder="What did you cover?">
+        </div>
+      </div>
+    </div>
+
+    <!-- Finance -->
+    <div class="section">
+      <div class="sec-head" onclick="toggle('fin')">
+        <span class="sec-icon">&#8377;</span>
+        <h3>Income &amp; expenses</h3>
+        <span class="chevron open" id="ch-fin">&#8964;</span>
+      </div>
+      <div class="sec-body" id="bd-fin">
+        <div class="fin-grid">
+          <div class="fin-card"><div class="fl">&#8593; Income</div><div class="fv income" id="f-inc">&#8377;0</div></div>
+          <div class="fin-card"><div class="fl">&#8595; Spent</div><div class="fv expense" id="f-exp">&#8377;0</div></div>
+          <div class="fin-card"><div class="fl">&#128023; Saved</div><div class="fv savings" id="f-sav">&#8377;0</div></div>
+          <div class="fin-card"><div class="fl">&#9878; Balance</div><div class="fv" id="f-net">&#8377;0</div></div>
+        </div>
+        <div class="txn-list" id="txn-list"></div>
+        <button class="add-btn" onclick="openModal()">+ Add transaction</button>
+      </div>
+    </div>
+
+    <div class="save-wrap">
+      <button class="save-btn" onclick="saveDay()" id="save-btn">&#9729; Save to cloud</button>
+      <div class="toast" id="toast"></div>
+    </div>
+  </div>
+
+  <!-- REVIEW VIEW -->
+  <div class="view" id="view-history">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px">
+      <button class="nav-btn active" onclick="switchReview('list')" id="rtab-list">&#128203; History</button>
+      <button class="nav-btn" onclick="switchReview('week')" id="rtab-week">&#128200; Summary</button>
+    </div>
+    <div id="review-list"></div>
+    <div id="review-week" style="display:none"></div>
+    <div id="review-detail" style="display:none"></div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-wrap" id="modal">
+  <div class="modal">
+    <h4>Add transaction</h4>
+    <div class="modal-row">
+      <select id="txn-type" style="width:100%">
+        <option value="income">Income</option>
+        <option value="expense">Expense</option>
+        <option value="savings">Savings</option>
+      </select>
+    </div>
+    <div class="modal-row">
+      <input type="text" id="txn-desc" placeholder="Description (e.g. Salary, Groceries)" style="width:100%">
+    </div>
+    <div class="modal-row">
+      <input type="number" id="txn-amt" placeholder="Amount (&#8377;)" min="0" step="1" style="width:100%">
+    </div>
+    <div class="modal-btns">
+      <button class="mbtn" onclick="closeModal()">Cancel</button>
+      <button class="mbtn primary" onclick="addTxn()">Add</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── SUPABASE CONFIG ───────────────────────────────────────────
+const SB_URL = 'https://svwbtrzwjjxyjphvqauw.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN2d2J0cnp3amp4eWpwaHZxYXV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExMTEyMzAsImV4cCI6MjA5NjY4NzIzMH0.puvxh29psNCW06c107qmNMrqaj4JRm6KqOgystlatIM';
+const TABLE  = 'daily_tracker';
+
+const HEADERS = {
+  'Content-Type': 'application/json',
+  'apikey': SB_KEY,
+  'Authorization': 'Bearer ' + SB_KEY,
+  'Prefer': 'return=representation'
+};
+
+async function sbGet(isoDate) {
+  const res = await fetch(`${SB_URL}/rest/v1/${TABLE}?iso_date=eq.${isoDate}&select=*`, {
+    headers: HEADERS
+  });
+  if (!res.ok) throw new Error('Fetch failed: ' + res.status);
+  const rows = await res.json();
+  return rows[0] || null;
+}
+
+async function sbUpsert(payload) {
+  // First try to find if record exists
+  const checkRes = await fetch(`${SB_URL}/rest/v1/${TABLE}?iso_date=eq.${payload.iso_date}&select=id`, {
+    headers: HEADERS
+  });
+  const existing = checkRes.ok ? await checkRes.json() : [];
+
+  if (existing.length > 0) {
+    // UPDATE existing row with PATCH
+    const res = await fetch(`${SB_URL}/rest/v1/${TABLE}?iso_date=eq.${payload.iso_date}`, {
+      method: 'PATCH',
+      headers: { ...HEADERS, 'Prefer': 'return=representation' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error('Update failed: ' + err);
+    }
+    return await res.json();
+  } else {
+    // INSERT new row with POST
+    const res = await fetch(`${SB_URL}/rest/v1/${TABLE}`, {
+      method: 'POST',
+      headers: { ...HEADERS, 'Prefer': 'return=representation' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error('Insert failed: ' + err);
+    }
+    return await res.json();
+  }
+}
+
+async function sbGetAll() {
+  const res = await fetch(`${SB_URL}/rest/v1/${TABLE}?select=*&order=iso_date.desc&limit=90`, {
+    headers: HEADERS
+  });
+  if (!res.ok) throw new Error('Fetch failed: ' + res.status);
+  return await res.json();
+}
+
+// ─── SYNC UI ───────────────────────────────────────────────────
+function syncStatus(state, msg) {
+  const dot = document.getElementById('sync-dot');
+  const txt = document.getElementById('sync-text');
+  dot.className = 'sync-dot ' + state;
+  txt.textContent = msg;
+}
+
+// ─── CONSTANTS ────────────────────────────────────────────────
+const SKIN_STEPS = ["Cleanse","Tone / toner","Serum","Moisturiser","Sunscreen (AM)","Eye cream","Face mist","Sheet mask"];
+let waterCount = 0;
+let skinDone = {};
+let transactions = [];
+let currentDate = '';
+
+// ─── DATE HELPERS ─────────────────────────────────────────────
+function fmtDate(iso) {
+  const d = new Date(iso + 'T00:00:00');
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return days[d.getDay()] + ', ' + d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
+}
+function todayISO() {
+  const d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function goToday() { document.getElementById('date-picker').value = todayISO(); loadDay(); }
+function changeDay(delta) {
+  const dp = document.getElementById('date-picker');
+  const d = new Date(dp.value + 'T00:00:00');
+  d.setDate(d.getDate() + delta);
+  dp.value = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  loadDay();
+}
+
+// ─── INIT ─────────────────────────────────────────────────────
+function init() {
+  buildCups();
+  buildSkin();
+  document.getElementById('date-picker').value = todayISO();
+  currentDate = todayISO();
+  loadDay();
+}
+
+// ─── LOAD DAY FROM SUPABASE ───────────────────────────────────
+async function loadDay() {
+  currentDate = document.getElementById('date-picker').value;
+  resetForm();
+  syncStatus('syncing', 'Loading ' + fmtDate(currentDate) + '…');
+  try {
+    const row = await sbGet(currentDate);
+    if (row) {
+      populateForm(row);
+      syncStatus('ok', 'Loaded from cloud ✓');
+    } else {
+      syncStatus('idle', 'No data for this date yet');
+    }
+  } catch(e) {
+    syncStatus('err', 'Offline — changes save locally only');
+    // fallback to localStorage
+    const local = localStorage.getItem('dt_' + currentDate);
+    if (local) try { populateForm(JSON.parse(local)); } catch(_){}
+  }
+  updateScore();
+}
+
+function populateForm(row) {
+  setVal('fuel-amt', row.fuel_amt);
+  setVal('fuel-unit', row.fuel_unit || 'L');
+  setVal('fuel-cost', row.fuel_cost);
+  setVal('km', row.km_driven);
+  setVal('km-unit', row.km_unit || 'km');
+  setVal('odometer', row.odometer);
+  setVal('odo-unit', 'km');
+  // water
+  waterCount = row.water_glasses || 0;
+  document.querySelectorAll('.cup').forEach((c,i) => c.classList.toggle('filled', i < waterCount));
+  updateWater();
+  // skincare
+  skinDone = {};
+  (row.skin_done || []).forEach(s => {
+    const idx = SKIN_STEPS.indexOf(s);
+    if (idx >= 0) skinDone[idx] = true;
+  });
+  SKIN_STEPS.forEach((_,i) => document.getElementById('sk'+i).classList.toggle('done', !!skinDone[i]));
+  // study
+  setVal('study-sub', row.study_subject);
+  setVal('study-hrs', row.study_hours);
+  setVal('study-goal', row.study_goal || 4);
+  setVal('study-notes', row.study_notes);
+  updateStudyBar();
+  // finance
+  transactions = row.transactions || [];
+  renderTxns();
+}
+
+// ─── SAVE DAY TO SUPABASE ─────────────────────────────────────
+async function saveDay() {
+  const btn = document.getElementById('save-btn');
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+  syncStatus('syncing', 'Saving to Supabase…');
+
+  const inc = transactions.filter(t=>t.type==='income').reduce((s,t)=>s+t.amt,0);
+  const exp = transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amt,0);
+  const sav = transactions.filter(t=>t.type==='savings').reduce((s,t)=>s+t.amt,0);
+
+  const payload = {
+    iso_date:     currentDate,
+    date_label:   fmtDate(currentDate),
+    water_glasses: waterCount,
+    study_hours:  parseFloat(document.getElementById('study-hrs').value) || 0,
+    study_subject: document.getElementById('study-sub').value || null,
+    study_notes:  document.getElementById('study-notes').value || null,
+    study_goal:   parseFloat(document.getElementById('study-goal').value) || 4,
+    fuel_amt:     parseFloat(document.getElementById('fuel-amt').value) || null,
+    fuel_unit:    document.getElementById('fuel-unit').value,
+    fuel_cost:    parseFloat(document.getElementById('fuel-cost').value) || null,
+    km_driven:    parseFloat(document.getElementById('km').value) || null,
+    km_unit:      document.getElementById('km-unit').value,
+    odometer:     parseFloat(document.getElementById('odometer').value) || null,
+    skin_done:    Object.keys(skinDone).filter(k=>skinDone[k]).map(k=>SKIN_STEPS[k]),
+    income:       inc,
+    expense:      exp,
+    savings:      sav,
+    transactions: transactions,
+    score:        calcScore({
+      water:{glasses:waterCount}, skincare:{done:Object.keys(skinDone).filter(k=>skinDone[k]).map(k=>SKIN_STEPS[k])},
+      study:{hours:document.getElementById('study-hrs').value, goal:document.getElementById('study-goal').value},
+      fuel:{km:document.getElementById('km').value}, finance:{transactions}
+    }),
+    updated_at: new Date().toISOString()
+  };
+
+  // also cache locally as offline fallback
+  localStorage.setItem('dt_' + currentDate, JSON.stringify(payload));
+
+  try {
+    await sbUpsert(payload);
+    syncStatus('ok', 'Saved to Supabase ✓ — ' + fmtDate(currentDate));
+    showToast('✓ Saved to cloud — ' + fmtDate(currentDate), 'ok');
+  } catch(e) {
+    console.error('Save error:', e.message);
+    syncStatus('err', 'Error: ' + e.message);
+    showToast('⚠ ' + e.message, 'err');
+  }
+
+  btn.disabled = false;
+  btn.textContent = '☁ Save to cloud';
+}
+
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + type;
+  setTimeout(() => { t.textContent=''; t.className='toast'; }, 4000);
+}
+
+// ─── FORM HELPERS ─────────────────────────────────────────────
+function resetForm() {
+  ['fuel-amt','fuel-cost','km','odometer','study-sub','study-hrs','study-notes'].forEach(id => setVal(id,''));
+  setVal('fuel-unit','L'); setVal('km-unit','km'); setVal('odo-unit','km'); setVal('study-goal','4');
+  waterCount = 0;
+  document.querySelectorAll('.cup').forEach(c => c.classList.remove('filled'));
+  updateWater();
+  skinDone = {};
+  SKIN_STEPS.forEach((_,i) => document.getElementById('sk'+i)?.classList.remove('done'));
+  transactions = [];
+  renderTxns();
+}
+function setVal(id, val) {
+  const el = document.getElementById(id);
+  if (el && val !== undefined && val !== null) el.value = val;
+}
+
+// ─── WATER ────────────────────────────────────────────────────
+function buildCups() {
+  const c = document.getElementById('cups');
+  for (let i=0;i<20;i++) {
+    const d = document.createElement('div');
+    d.className='cup'; d.textContent='🥛'; d.id='cp'+i;
+    d.onclick = () => toggleCup(i);
+    c.appendChild(d);
+  }
+}
+function toggleCup(i) {
+  const el = document.getElementById('cp'+i);
+  if (el.classList.contains('filled')) { el.classList.remove('filled'); waterCount--; }
+  else { el.classList.add('filled'); waterCount++; }
+  updateWater(); updateScore();
+}
+function updateWater() {
+  document.getElementById('w-fill').style.width = Math.min(100, waterCount*5) + '%';
+  document.getElementById('w-lbl').textContent = (waterCount*0.25).toFixed(2) + 'L / 5L — tap a glass (250ml each)';
+}
+
+// ─── SKINCARE ─────────────────────────────────────────────────
+function buildSkin() {
+  const list = document.getElementById('skin-list');
+  SKIN_STEPS.forEach((s,i) => {
+    const d = document.createElement('div');
+    d.className='skin-item'; d.id='sk'+i;
+    d.innerHTML = `<div class="chk" id="chk${i}">&#10003;</div><span class="skin-lbl">${s}</span>`;
+    d.onclick = () => toggleSkin(i);
+    list.appendChild(d);
+  });
+}
+function toggleSkin(i) {
+  skinDone[i] = !skinDone[i];
+  document.getElementById('sk'+i).classList.toggle('done', skinDone[i]);
+  updateScore();
+}
+
+// ─── STUDY ────────────────────────────────────────────────────
+function updateStudyBar() {
+  const h = parseFloat(document.getElementById('study-hrs').value) || 0;
+  const g = parseFloat(document.getElementById('study-goal').value) || 4;
+  document.getElementById('s-fill').style.width = Math.min(100, Math.round(h/g*100)) + '%';
+  document.getElementById('s-lbl').textContent = h.toFixed(1) + ' / ' + g + 'h';
+  updateScore();
+}
+
+// ─── SCORE ────────────────────────────────────────────────────
+function calcScore(d) {
+  let pts = 0;
+  pts += Math.min(20, Math.round((d.water?.glasses||0)/20*20));
+  pts += Math.round((d.skincare?.done?.length||0)/SKIN_STEPS.length*20);
+  const h = parseFloat(d.study?.hours)||0, g = parseFloat(d.study?.goal)||4;
+  pts += Math.min(20, Math.round(h/g*20));
+  if (parseFloat(d.fuel?.km)>0) pts += 20;
+  if ((d.finance?.transactions?.length||0)>0) pts += 20;
+  return Math.round(pts);
+}
+function updateScore() {
+  const pct = calcScore({
+    water:{glasses:waterCount},
+    skincare:{done:Object.keys(skinDone).filter(k=>skinDone[k]).map(k=>SKIN_STEPS[k])},
+    study:{hours:document.getElementById('study-hrs').value, goal:document.getElementById('study-goal').value},
+    fuel:{km:document.getElementById('km').value},
+    finance:{transactions}
+  });
+  const badge = document.getElementById('score-badge');
+  badge.textContent = 'Score: ' + pct + '%';
+  badge.className = 'score-badge ' + (pct>=70?'score-high':pct>=40?'score-mid':'score-low');
+}
+
+// ─── SECTION TOGGLE ───────────────────────────────────────────
+function toggle(id) {
+  const bd = document.getElementById('bd-'+id);
+  const ch = document.getElementById('ch-'+id);
+  const open = bd.style.display !== 'none';
+  bd.style.display = open ? 'none' : 'block';
+  ch.classList.toggle('open', !open);
+}
+
+// ─── TRANSACTIONS ─────────────────────────────────────────────
+function openModal() { document.getElementById('modal').classList.add('open'); }
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+  document.getElementById('txn-amt').value='';
+  document.getElementById('txn-desc').value='';
+}
+function addTxn() {
+  const type = document.getElementById('txn-type').value;
+  const desc = document.getElementById('txn-desc').value.trim() || type;
+  const amt  = parseFloat(document.getElementById('txn-amt').value) || 0;
+  if (amt <= 0) return;
+  transactions.push({type, desc, amt});
+  renderTxns(); closeModal(); updateScore();
+}
+function delTxn(i) { transactions.splice(i,1); renderTxns(); updateScore(); }
+function renderTxns() {
+  const list = document.getElementById('txn-list');
+  list.innerHTML = '';
+  let inc=0, exp=0, sav=0;
+  transactions.forEach((t,i) => {
+    if (t.type==='income') inc+=t.amt;
+    else if (t.type==='expense') exp+=t.amt;
+    else sav+=t.amt;
+    const row = document.createElement('div');
+    row.className='txn-row';
+    row.innerHTML = `<div class="dot ${t.type}"></div><span class="txn-desc">${t.desc}</span><span class="txn-amt ${t.type}">&#8377;${Math.round(t.amt).toLocaleString('en-IN')}</span><button class="del-btn" onclick="delTxn(${i})">&#10005;</button>`;
+    list.appendChild(row);
+  });
+  const net = inc-exp-sav;
+  document.getElementById('f-inc').textContent = '₹'+Math.round(inc).toLocaleString('en-IN');
+  document.getElementById('f-exp').textContent = '₹'+Math.round(exp).toLocaleString('en-IN');
+  document.getElementById('f-sav').textContent = '₹'+Math.round(sav).toLocaleString('en-IN');
+  const netEl = document.getElementById('f-net');
+  netEl.textContent = '₹'+Math.round(Math.abs(net)).toLocaleString('en-IN')+(net>=0?' ↑':' ↓');
+  netEl.style.color = net>=0?'var(--green)':'var(--red)';
+}
+
+// ─── VIEWS ────────────────────────────────────────────────────
+function showView(v) {
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(el=>el.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  document.getElementById('tab-'+v).classList.add('active');
+  if (v==='history') renderHistoryList();
+}
+
+// ─── REVIEW / HISTORY ─────────────────────────────────────────
+function rupee(n) { return '₹'+(Math.round(n)||0).toLocaleString('en-IN'); }
+function scorePill(pct) {
+  const cls = pct>=70?'score-high':pct>=40?'score-mid':'score-low';
+  return `<span class="score-pill ${cls}">${pct}%</span>`;
+}
+
+function switchReview(tab) {
+  document.getElementById('review-list').style.display   = tab==='list'?'block':'none';
+  document.getElementById('review-week').style.display   = tab==='week'?'block':'none';
+  document.getElementById('review-detail').style.display = 'none';
+  document.getElementById('rtab-list').className = 'nav-btn'+(tab==='list'?' active':'');
+  document.getElementById('rtab-week').className = 'nav-btn'+(tab==='week'?' active':'');
+  if (tab==='week') renderWeekSummary();
+  else renderHistoryList();
+}
+
+async function renderHistoryList() {
+  document.getElementById('review-detail').style.display = 'none';
+  document.getElementById('review-list').style.display = 'block';
+  const el = document.getElementById('review-list');
+  el.innerHTML = '<div class="loading">Loading history…</div>';
+  syncStatus('syncing', 'Loading history…');
+  let days = [];
+  try {
+    days = await sbGetAll();
+    syncStatus('ok', days.length + ' days in Supabase');
+  } catch(e) {
+    syncStatus('err', 'Offline — showing local cache');
+    // fallback: gather from localStorage
+    for (let i=0;i<localStorage.length;i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith('dt_')) {
+        try { days.push(JSON.parse(localStorage.getItem(k))); } catch(_){}
+      }
+    }
+    days.sort((a,b)=>(b.iso_date||'').localeCompare(a.iso_date||''));
+  }
+  if (!days.length) {
+    el.innerHTML = `<div class="empty"><span class="empty-icon">&#128197;</span>No saved days yet.<br>Fill in the tracker and tap "Save to cloud".</div>`;
+    return;
+  }
+  el.innerHTML = '';
+  days.forEach(row => {
+    const d = rowToDisplay(row);
+    const score = row.score || calcScore({
+      water:{glasses:row.water_glasses}, skincare:{done:row.skin_done||[]},
+      study:{hours:row.study_hours, goal:row.study_goal||4},
+      fuel:{km:row.km_driven}, finance:{transactions:row.transactions||[]}
+    });
+    const card = document.createElement('div');
+    card.className = 'day-card';
+    card.innerHTML = `
+      <div class="dc-head"><span class="dc-title">${row.date_label||row.iso_date}</span>${scorePill(score)}</div>
+      <div class="dc-body">
+        <div class="dc-stats">
+          <div class="dc-stat"><div class="sl">&#128167; Water</div><div class="sv">${((row.water_glasses||0)*0.25).toFixed(2)}L</div></div>
+          <div class="dc-stat"><div class="sl">&#128218; Study</div><div class="sv">${row.study_hours||0}h</div></div>
+          <div class="dc-stat"><div class="sl">&#9981; Distance</div><div class="sv">${row.km_driven||'—'} ${row.km_driven?row.km_unit:''}</div></div>
+          <div class="dc-stat"><div class="sl">&#10024; Skincare</div><div class="sv">${(row.skin_done||[]).length}/${SKIN_STEPS.length}</div></div>
+        </div>
+        <div class="txn-mini">
+          <span><span class="dot income"></span> ${rupee(row.income)}</span>
+          <span><span class="dot expense"></span> ${rupee(row.expense)}</span>
+          <span><span class="dot savings"></span> ${rupee(row.savings)}</span>
+        </div>
+      </div>`;
+    card.onclick = () => showDetail(row);
+    el.appendChild(card);
+  });
+}
+
+function showDetail(row) {
+  document.getElementById('review-list').style.display = 'none';
+  const det = document.getElementById('review-detail');
+  det.style.display = 'block';
+  const score = row.score || 0;
+  const net = (row.income||0) - (row.expense||0) - (row.savings||0);
+  const skDone = new Set(row.skin_done||[]);
+  const skinHTML = SKIN_STEPS.map(s=>`<span class="stag ${skDone.has(s)?'done':'miss'}">${skDone.has(s)?'✓ ':'✕ '}${s}</span>`).join('');
+  const txnHTML = (row.transactions||[]).map(t=>`
+    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--border);font-size:12px">
+      <span style="display:flex;align-items:center;gap:6px"><span class="dot ${t.type}"></span><span style="color:var(--text)">${t.desc}</span></span>
+      <span style="font-weight:500;color:var(--${t.type==='income'?'green':t.type==='expense'?'red':'blue'})">${rupee(t.amt)}</span>
+    </div>`).join('') || '<div style="font-size:12px;color:var(--text3)">No transactions</div>';
+  det.innerHTML = `
+    <button class="back-btn" onclick="renderHistoryList()">&#8592; Back to history</button>
+    <div class="detail-title"><span style="font-size:15px;font-weight:500">${row.date_label||row.iso_date}</span>${scorePill(score)}</div>
+    <div class="sec-divider">Water &amp; study</div>
+    <div class="sum-grid">
+      <div class="sum-card"><div class="scl">&#128167; Water</div><div class="scv">${((row.water_glasses||0)*0.25).toFixed(2)}L</div><div class="scs">${row.water_glasses||0} / 20 glasses</div></div>
+      <div class="sum-card"><div class="scl">&#128218; Study</div><div class="scv">${row.study_hours||0}h</div><div class="scs">${row.study_subject||'—'}</div></div>
+    </div>
+    ${row.study_notes?`<div class="note-box">${row.study_notes}</div>`:''}
+    <div class="sec-divider">Fuel &amp; km</div>
+    <div class="sum-grid">
+      <div class="sum-card"><div class="scl">&#9981; Fuel</div><div class="scv" style="font-size:14px">${row.fuel_amt?row.fuel_amt+' '+row.fuel_unit:'—'}</div><div class="scs">${row.fuel_cost?'₹'+row.fuel_cost:''}</div></div>
+      <div class="sum-card"><div class="scl">&#128739; Distance</div><div class="scv" style="font-size:14px">${row.km_driven?row.km_driven+' '+row.km_unit:'—'}</div><div class="scs">${row.odometer?'Odo: '+row.odometer+' km':''}</div></div>
+    </div>
+    <div class="sec-divider">Skincare</div>
+    <div class="skin-tags">${skinHTML}</div>
+    <div class="sec-divider">Finances</div>
+    <div class="sum-grid">
+      <div class="sum-card"><div class="scl">Income</div><div class="scv" style="color:var(--green)">${rupee(row.income)}</div></div>
+      <div class="sum-card"><div class="scl">Spent</div><div class="scv" style="color:var(--red)">${rupee(row.expense)}</div></div>
+      <div class="sum-card"><div class="scl">Saved</div><div class="scv" style="color:var(--blue)">${rupee(row.savings)}</div></div>
+      <div class="sum-card"><div class="scl">Balance</div><div class="scv" style="color:var(--${net>=0?'green':'red'})">${rupee(Math.abs(net))} ${net>=0?'↑':'↓'}</div></div>
+    </div>
+    <div style="margin-top:4px">${txnHTML}</div>
+    <div style="margin-top:12px">
+      <button class="save-btn" style="background:var(--bg2);color:var(--text);border:0.5px solid var(--border2)" onclick="jumpToDate('${row.iso_date}')">&#9998; Edit this day</button>
+    </div>`;
+}
+
+function jumpToDate(iso) {
+  document.getElementById('date-picker').value = iso;
+  showView('tracker');
+  loadDay();
+}
+
+async function renderWeekSummary() {
+  document.getElementById('review-detail').style.display = 'none';
+  const el = document.getElementById('review-week');
+  el.innerHTML = '<div class="loading">Loading summary…</div>';
+  let days = [];
+  try { days = await sbGetAll(); } catch(e) { days = []; }
+  days = days.slice(0,7);
+  if (!days.length) {
+    el.innerHTML = `<div class="empty"><span class="empty-icon">&#128200;</span>No data yet.<br>Save a few days first.</div>`;
+    return;
+  }
+  const n = days.length;
+  const avgW = (days.reduce((s,d)=>s+(d.water_glasses||0),0)/n*0.25).toFixed(2);
+  const avgS = (days.reduce((s,d)=>s+(parseFloat(d.study_hours)||0),0)/n).toFixed(1);
+  const totKm = days.reduce((s,d)=>s+(parseFloat(d.km_driven)||0),0).toFixed(1);
+  const totInc = days.reduce((s,d)=>s+(d.income||0),0);
+  const totSav = days.reduce((s,d)=>s+(d.savings||0),0);
+  const avgScore = Math.round(days.reduce((s,d)=>s+(d.score||0),0)/n);
+  let html = `
+    <div style="font-size:12px;color:var(--text3);margin-bottom:10px">Last ${n} saved day${n>1?'s':''} from Supabase</div>
+    <div class="sum-grid" style="margin-bottom:12px">
+      <div class="sum-card"><div class="scl">&#11088; Avg score</div><div class="scv">${avgScore}%</div></div>
+      <div class="sum-card"><div class="scl">&#128167; Avg water</div><div class="scv">${avgW}L</div></div>
+      <div class="sum-card"><div class="scl">&#128218; Avg study</div><div class="scv">${avgS}h</div></div>
+      <div class="sum-card"><div class="scl">&#9981; Total km</div><div class="scv">${totKm}</div></div>
+      <div class="sum-card"><div class="scl">Income</div><div class="scv" style="font-size:14px;color:var(--green)">${rupee(totInc)}</div></div>
+      <div class="sum-card"><div class="scl">Saved</div><div class="scv" style="font-size:14px;color:var(--blue)">${rupee(totSav)}</div></div>
+    </div>
+    <div style="font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px">Day scores</div>`;
+  days.forEach(row => {
+    const s = row.score || 0;
+    const cls = s>=70?'bh':s>=40?'bm':'bl';
+    html += `<div class="bar-row">
+      <span class="bar-date">${(row.date_label||row.iso_date).split(',')[0]}</span>
+      <div class="bar-track"><div class="bar-fill ${cls}" style="width:${s}%"><span class="bp">${s}%</span></div></div>
+    </div>`;
+  });
+  el.innerHTML = html;
+}
+
+function rowToDisplay(row) { return row; }
+
+window.addEventListener('click', e => {
+  if (e.target === document.getElementById('modal')) closeModal();
+});
+
+init();
+</script>
+</body>
+</html>
